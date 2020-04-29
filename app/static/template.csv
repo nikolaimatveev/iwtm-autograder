@@ -1,0 +1,37 @@
+task_number;filename;sender;recipient;policies;verdict;violation_level;tags
+3;report.jpg;Tenders;External;Политика 3;Allowed;Low;
+3;report.jpg;Tenders;External;Политика 3;Allowed;Low;
+4;nepravilno.rtf;Sales;External;;Allowed;No;
+4;Wordlskilz.rtf;Sales;External;Политика 4;Allowed;Medium;Политика 4
+5;dogovor.doc;IT;External;Политика 5.1;Allowed;Low;Политика 5
+5;dogovor_direktor.doc;IT;External;Политика 5.2;Allowed;Medium;Политика 5 Tag 2
+5;dogovor_pechat.pdf;IT;External;Политика 5.3;Forbidden;High;Политика 5
+6;anketa.docx;Sales;External;;Allowed;No;
+6;anketa_pechat.pdf;Sales;External;Политика 6;Forbidden;Medium;Политика 6
+6;anketa.docx;kornilov@demo.lab;External;;Allowed;No;
+6;anketa_pechat.pdf;kornilov@demo.lab;External;;Allowed;No;
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;На рассмотрение
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;Политика 13
+1;report.jpg;Sales;External;Политика 1;Allowed;Low;Политика 13
+14;report.jpg;Sales;External;Политика 14;Allowed;Low;Политика 14
+14;report.jpg;Sales;External;Политика 14;Allowed;Low;Политика 14
+14;report.jpg;Sales;External;Политика 14;Allowed;Low;Политика 14
+15;Win1.zip;Accounting;External;Политика 15;Allowed;Low;Политика 15

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>IWTM AutoGrader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-xs-6">
+          <h2 class="sub-header">Real events</h2>
+          <div id="real" class="table-responsive" style="height: 600px;">
+          <table class="table table-sm table-bordered" style="white-space: nowrap;">
+            <thead>
+            <tr>
+              <th scope="col">Task number</th>
+              <th scope="col">Event number</th>
+              <th scope="col">Filename</th>
+              <th scope="col">Sender</th>
+              <th scope="col">Recipient</th>
+              <th scope="col">Policy name</th>
+              <th scope="col">Verdict</th>
+              <th scope="col">Violation level</th>
+              <th scope="col">Tag</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for event, delta, file in real_events_with_deltas %}
+            <tr>
+              <td></td>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ file }}</td>
+              <td>{{ event.senders.0.0.keys.0.KEY }}</td>
+              <td>{{ event.recipients_keys.0.KEY }}</td>
+              <td nowrap {% if delta.policy_name == 'wrong' %} class="bg-danger" {% endif %}>
+                {% for policy in event.policies %}
+                  {{ policy.DISPLAY_NAME }} 
+                {% endfor %}
+              </td>
+              <td {% if delta.verdict == 'wrong' %} class="bg-danger" {% endif %}>
+                {{ event.VERDICT }}
+              </td>
+              <td {% if delta.violation_level == 'wrong' %} class="bg-danger" {% endif %}>
+                {{ event.VIOLATION_LEVEL }}
+              </td>
+              <td {% if delta.tag == 'wrong' %} class="bg-danger" {% endif %}>
+                {% for tag in event.tags %}
+                  <div>{{ tag.DISPLAY_NAME }}</div>
+                {% endfor %}
+              </td>
+            </tr> 
+            {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+        <div class="col-xs-6">
+          <h2 class="sub-header">Template events</h2>
+          <div id="template" class="table-responsive" style="height: 600px;">
+          <table class="table table-sm table-bordered" style="white-space: nowrap;">
+            <thead>
+            <tr>
+              <th scope="col">Task number</th>
+              <th scope="col">Event number</th>
+              <th scope="col">Filename</th>
+              <th scope="col">Sender</th>
+              <th scope="col">Recipient</th>
+              <th scope="col">Policy name</th>
+              <th scope="col">Verdict</th>
+              <th scope="col">Violation level</th>
+              <th scope="col">Tags</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for event in template_events %}
+            <tr>
+              <td>{{ event.task_number }}</td>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ event.filename }}</td>
+              <td>{{ event.sender }}</td>
+              <td>{{ event.recipient }}</td>
+              <td>{{ event.policies }}</td>
+              <td>{{ event.verdict }}</td>
+              <td>{{ event.violation_level }}</td>
+              <td>{{ event.tags }}</td>
+            </tr> 
+            {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      
+      </div>
+    </div>
+    <script>
+      $("#real").scroll(function() {
+        $("#template").scrollTop($(this).scrollTop());
+      });
+      $("#template").scroll(function() {
+        $("#real").scrollTop($(this).scrollTop());
+      });
+
+      $("#real").scroll(function() {
+        $("#template").scrollLeft($(this).scrollLeft());
+      });
+      $("#template").on("scroll", function() {
+        $("#real").scrollLeft($(this).scrollLeft());
+      });
+    </script>
+  </body>
+</html>
