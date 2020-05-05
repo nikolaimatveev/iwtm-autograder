@@ -226,7 +226,7 @@
          "CAPTURE_DATE_TZ":"+03:00",
          "INSERT_DATE":"2020-03-26 13:56:56.464299",
          "OBJECT_SIZE":25442,
-         "PREVIEW_DATA":"{\"subject\":\"From: Internal, To: External, File: anketa.docx\"}",
+         "PREVIEW_DATA":"{\"subject\":\"From: kornilov@demo.lab, To: External, File: anketa.docx\"}",
          "DEVICE_NAME":"None",
          "DESTINATION_HOST":"None",
          "DESTINATION_PATH":"None",
@@ -333,7 +333,7 @@
          "CAPTURE_DATE_TZ":"+03:00",
          "INSERT_DATE":"2020-03-26 13:56:57.479042",
          "OBJECT_SIZE":604267,
-         "PREVIEW_DATA":"{\"subject\":\"From: Internal, To: External, File: anketa_pechat.pdf\"}",
+         "PREVIEW_DATA":"{\"subject\":\"From: kornilov@demo.lab, To: External, File: anketa_pechat.pdf\"}",
          "DEVICE_NAME":"None",
          "DESTINATION_HOST":"None",
          "DESTINATION_PATH":"None",
@@ -1486,126 +1486,6 @@
             {
                "OLI_ID":706,
                "OBJECT_ID":603,
-               "IDENTITY_TYPE":"recipient",
-               "KEY":"james.scott@abc.org",
-               "DOMAIN":"abc.org",
-               "KEY_TYPE":"email",
-               "KEY_PRIORITY":1,
-               "INITIATOR":"None",
-               "PARTICIPANT_COUNT":0,
-               "TBS_ID":35
-            }
-         ],
-         "senders_keys":[
-
-         ]
-      },
-      {
-         "OBJECT_ID":604,
-         "DOCUMENT_ID":"461bd96a-19ff-4f4d-b140-6a9cec10b93e",
-         "SERVICE_CODE":"CE6D8E0E27DA11E2962FC1DB6088709B00000000",
-         "OBJECT_TYPE_CODE":"D2B5132E27DA11E28444C2DB6088709B00000000",
-         "DIRECTION":"out",
-         "SENT_DATE":"2020-03-26 13:56:46",
-         "SENT_DATE_TZ":"+03:00",
-         "CAPTURE_DATE":"2020-03-26 13:56:47",
-         "CAPTURE_DATE_TZ":"+03:00",
-         "INSERT_DATE":"2020-03-26 13:56:47.21362",
-         "OBJECT_SIZE":33950,
-         "PREVIEW_DATA":"{\"subject\":\"From: Tenders, To: External, File: report.jpg\"}",
-         "DEVICE_NAME":"None",
-         "DESTINATION_HOST":"None",
-         "DESTINATION_PATH":"None",
-         "APPLICATION_FROM":"None",
-         "APPLICATION_TO":"None",
-         "TASK_QUERY":"None",
-         "ACTION":"A0CD9DD9551E92DF51D744C452BB6C2A7D2DF2C0",
-         "RULE_GROUP_TYPE":"Transfer",
-         "VERDICT":"Allowed",
-         "USER_DECISION":"NotProcessed",
-         "VIOLATION_LEVEL":"Low",
-         "FORWARD_STATE_CODE":"Sent",
-         "FORWARD_ATTEMPTS":"None",
-         "FORWARD_DATE":"2020-03-26 16:56:47",
-         "CAPTURE_SERVER_IP":"192.168.109.102",
-         "CAPTURE_SERVER_HOSTNAME":"tm-clean.local",
-         "ATTACHMENT_COUNT":1,
-         "OBJECT_ERROR_EXISTS":0,
-         "GARBAGE_TRAFFIC":0,
-         "PROTOCOL":"A324CCB227DA11E2A8D99FDB6088709B00000000",
-         "TBS_TYPE":1,
-         "TBS_ID":35,
-         "RECIPIENT_COUNT":1,
-         "MAC_CATEGORIES":"",
-         "MAC_LEVEL":"None",
-         "TEXT":"None",
-         "GUI_XML":"None",
-         "NOTIFICATIONS":"None",
-         "SERVICE_CODE_MNEMO":"email",
-         "OBJECT_TYPE_CODE_MNEMO":"email",
-         "ACTION_MNEMO":"email_transfer",
-         "protected_documents":[
-
-         ],
-         "policies":[
-            {
-               "OBJECT_ID":604,
-               "POLICY_ID":"BE04CD3E34765067B61A5C86E1B944DC00000000",
-               "DISPLAY_NAME":"Политика 3",
-               "IS_DELETED":0,
-               "TBS_ID":35
-            }
-         ],
-         "protected_catalogs":[
-
-         ],
-         "tags":[
-            {
-               "OBJECT_ID":604,
-               "TAG_ID":"D7E589FA52B88A93FBE60CE4DDC39B9400000000",
-               "DISPLAY_NAME":"Политика 4",
-               "COLOR":"#4e954e",
-               "IS_DELETED":0,
-               "TBS_ID":35
-            }
-         ],
-         "senders":[
-            [
-               {
-                  "OBJECT_PARTICIPANT_ID":504,
-                  "IDENTITY_TYPE":"sender",
-                  "PARTICIPANT_TYPE":"person",
-                  "PARTICIPANT_ID":"2418365FA27EA14EBC830116A4F9907A",
-                  "OBJECT_ID":604,
-                  "TBS_ID":35,
-                  "DISPLAY_NAME":"Drozdova S Alla",
-                  "IS_DELETED":0,
-                  "keys":[
-                     {
-                        "OBJECT_PARTICIPANT_ID":504,
-                        "OLI_ID":707,
-                        "OBJECT_ID":604,
-                        "IDENTITY_TYPE":"sender",
-                        "KEY":"adrozdova@demo.lab",
-                        "DOMAIN":"demo.lab",
-                        "KEY_TYPE":"email",
-                        "KEY_PRIORITY":1,
-                        "INITIATOR":"None",
-                        "PARTICIPANT_COUNT":1,
-                        "TBS_ID":35,
-                        "IS_DELETED":"None"
-                     }
-                  ]
-               }
-            ]
-         ],
-         "recipients":[
-
-         ],
-         "recipients_keys":[
-            {
-               "OLI_ID":708,
-               "OBJECT_ID":604,
                "IDENTITY_TYPE":"recipient",
                "KEY":"james.scott@abc.org",
                "DOMAIN":"abc.org",
