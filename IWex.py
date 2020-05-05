@@ -70,7 +70,7 @@ def get_events_from_url(url):
         the_page = response.read()
         data = json.loads(the_page)
     
-    with open('data.json', 'w', encoding='utf-8') as outfile:
+    with open('data0505.json', 'w', encoding='utf-8') as outfile:
         json.dump(data, outfile, ensure_ascii=False)
     return data
 
@@ -446,7 +446,7 @@ token = '1w79w1z40xshocds56p4'
 #timestamp = calendar.timegm(time_tuple)
 string_timestamp = '1584722120'
 HTTP_HEADERS['X-API-Auth-Token'] = token
-url = 'https://10.228.6.236:10443/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&limit=' + str(
+url = 'https://10.228.6.236:17443/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&limit=' + str(
     NUMBER_OF_EVENTS) + "&filter[date][from]=" + string_timestamp
 events = get_events_from_url(url)
 print(events)
