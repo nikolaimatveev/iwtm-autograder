@@ -34,9 +34,9 @@ class EventService:
         with open(filename, encoding='utf-8') as json_file:
             data = json.load(json_file)
         self.real_events = data['data']
-        self.change_real()
+        self.fix_real()
     
-    def change_real(self):
+    def fix_real(self):
         for event in self.real_events:
             subject = json.loads(event['PREVIEW_DATA'])['subject'].split(', ')
             event_sender = subject[0].split(':')[1].strip()
@@ -52,7 +52,7 @@ class EventService:
                         'X-API-CompanyId': 'GUAP',
                         'X-API-ImporterName': 'GUAP',
                         'X-API-Auth-Token': token}
-        string_timestamp = '1588636800'
+        string_timestamp = '1588759200'
         url = 'https://' + ip + ':17443/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&filter[date][from]=' + string_timestamp
         req = urllib.request.Request(url, headers=HTTP_HEADERS)
         data = []
@@ -60,20 +60,21 @@ class EventService:
             the_page = response.read()
             data = json.loads(the_page)
         self.real_events = data['data']
+        self.fix_real()
 
-    def find_all_by_id(self, filename, sender, recipient):
-        found_events = []
+    def find_by_id(self, filename, sender, recipient):
+        found_event = {}
         for event in self.real_events:
             if event['filename'] == filename and event['sender'] == sender and event['recipient'] == recipient:
-                found_events.append(event)
-        return found_events
+                found_event = event
+                return found_event
+        return found_event
 
     def align_real(self):
         result = []
         for event in self.template_events:
-            found_events = self.find_all_by_id(event['filename'], event['sender'], event['recipient'])
-            for e in found_events:
-                result.append(e)
+            found_event = self.find_by_id(event['filename'], event['sender'], event['recipient'])
+            result.append(found_event)
         self.real_events = result
     
     def align_template(template_events, real_events):
@@ -106,12 +107,19 @@ class EventService:
         for template_event, real_event in zip(self.template_events, self.real_events):
             event_delta = {}
             diff_policies = []
+
+            if not real_event['policies']:
+                real_event['policies'] = [{'DISPLAY_NAME': 'No'}]
+
             for policy in real_event['policies']:
                 if policy['DISPLAY_NAME'] not in template_event['policies']:
                     diff_policies.append(policy['DISPLAY_NAME'])
             event_delta['policies'] = diff_policies
 
             diff_tags = []
+
+            if not real_event['tags']:
+                real_event['tags'] = [{'DISPLAY_NAME': 'No'}]
 
             for tag in real_event['tags']:
                 if tag['DISPLAY_NAME'] not in template_event['tags']:

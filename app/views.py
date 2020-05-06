@@ -21,8 +21,8 @@ def index(request):
         event_service.load_template(template_path)
     
     if request.method=='POST' and 'iw_ip' in request.POST:
-        event_service.load_real('app/static/sample-events.json')
-        #event_service.load_events_from_iwtm(request.GET['iw_ip'], request.GET['iw_token'])
+        #event_service.load_real('app/static/sample-events.json')
+        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'])
         return HttpResponseRedirect('/') 
     
     context = {'template_events': event_service.template_events,
