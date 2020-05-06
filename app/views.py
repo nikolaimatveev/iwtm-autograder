@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
 event_service = EventService()
+template_path = 'app/static/upload/template.csv'
 
 def index(request):
     if request.method=='POST' and 'template' in request.POST:
@@ -16,25 +17,23 @@ def index(request):
         save_template_file(request.FILES['template_file'])
         return HttpResponseRedirect('/')
 
-    if request.method=='POST' and 'iw_ip' in request.POST:
-        print('loading events from iw')
-    
-    template_events = []
-    template_path = 'app/static/upload/template.csv'
-    real_events = event_service.get_real('app/static/sample-events.json')
     if os.path.isfile(template_path):
-        template_events = event_service.get_template(template_path)
-        event_service.align_real()
-        #deltas = event_service.compare()
+        event_service.load_template(template_path)
+    
+    if request.method=='POST' and 'iw_ip' in request.POST:
+        event_service.load_real('app/static/sample-events.json')
+        #event_service.load_events_from_iwtm(request.GET['iw_ip'], request.GET['iw_token'])
+        return HttpResponseRedirect('/') 
     
     context = {'template_events': event_service.template_events,
-                'real_events_with_deltas': zip(event_service.real_events, event_service.deltas)}
-    return render(request, 'app/test.html', context)
+                'real_events': event_service.real_events}
+    if event_service.deltas:
+        context['real_events_diff'] = zip(event_service.real_events, event_service.deltas)
+    return render(request, 'app/index.html', context)
 
 def list_real_events(request):
     events = event_service.load_events_from_iwtm()
     json_pretty = json.dumps(events, indent=4, ensure_ascii=False)
-    #print(json_pretty)
     return HttpResponse(json_pretty, content_type="application/json; charset=utf-8")
 
 def compare_events(request):
@@ -60,7 +59,7 @@ def test(request):
     event_service = EventService()
     real_events = event_service.get_real('app/static/sample-events.json')
     event_service.find_all_by_id(real_events, 'catoo.jpg', 'IT', 'External')
-    return render(request, 'app/test.html', context)
+    return render(request, 'app/index.html', context)
 
 def sent_date_sorting(event):
     return datetime.datetime.strptime(event['SENT_DATE'], '%Y-%m-%d %H:%M:%S').timestamp()

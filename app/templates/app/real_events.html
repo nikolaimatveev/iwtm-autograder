@@ -1,0 +1,18 @@
+{% for event in real_events %}
+            <div class="border-top border-dark">
+              <span>{{ event.sender }} &rArr; {{ event.recipient }}</span><br>
+              <span>File: {{ event.filename }}</span><br>
+              <span>Policies: 
+                {% for policy in event.policies %}
+                    {{ policy.DISPLAY_NAME }}
+                {% endfor %}
+              </span><br>
+              <span>Verdict: {{ event.VERDICT }}</span><br>
+              <span>Violation level: {{ event.VIOLATION_LEVEL }}</span><br>
+              <span>Tags:
+                {% for tag in event.tags %}
+                  {{ tag.DISPLAY_NAME }}
+              {% endfor %}
+              </span>
+            </div>
+{% endfor %}

@@ -5,13 +5,6 @@ import urllib.parse
 import urllib.request
 import ssl
 
-# Цель веб-приложения: показать что в задании выполнено неправильно,
-# внести правки в найденные ошибки при необходимости,
-# вычислить баллы и вывести их в таблицу?
-
-# Сравнивать нужно НЕ поэлементно, а по уникальному ключу
-
-
 class EventService:
 
     def __init__(self):
@@ -19,7 +12,7 @@ class EventService:
         self.template_events = []
         self.real_events = []
 
-    def get_template(self, filename):
+    def load_template(self, filename):
         self.template_events = []
         with open(filename, encoding='utf-8') as file:
             reader = csv.DictReader(file, delimiter=';')
@@ -33,34 +26,17 @@ class EventService:
                 event['verdict'] = row['verdict']
                 event['violation_level'] = row['violation_level']
                 event['tags'] = row['tags'].split(',')
-                self.deltas.append('ok')
                 self.template_events.append(event)
         return self.template_events
     
-    def get_real(self, filename):
+    def load_real(self, filename):
         data = []
         with open(filename, encoding='utf-8') as json_file:
             data = json.load(json_file)
         self.real_events = data['data']
-        return data['data']
+        self.change_real()
     
-    def load_events_from_iwtm(self):
-        token = '1bs23q0mf47941ctode8'
-        HTTP_HEADERS = {'X-API-Version': 1,
-                        'X-API-CompanyId': 'GUAP',
-                        'X-API-ImporterName': 'GUAP',
-                        'X-API-Auth-Token': token}
-        string_timestamp = '1588636800'
-        url = 'https://10.228.6.236:17443/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&filter[date][from]=' + string_timestamp
-        req = urllib.request.Request(url, headers=HTTP_HEADERS)
-        data = []
-        with urllib.request.urlopen(req, context=ssl._create_unverified_context()) as response:
-            the_page = response.read()
-            data = json.loads(the_page)
-        return data
-
-    def find_all_by_id(self, filename, sender, recipient):
-        found_events = []
+    def change_real(self):
         for event in self.real_events:
             subject = json.loads(event['PREVIEW_DATA'])['subject'].split(', ')
             event_sender = subject[0].split(':')[1].strip()
@@ -69,7 +45,26 @@ class EventService:
             event['sender'] = event_sender
             event['recipient'] = event_recipient
             event['filename'] = event_filename
-            if event_filename == filename and event_sender == sender and event_recipient == recipient:
+    
+    def load_events_from_iwtm(self, ip, token):
+        #token = '1bs23q0mf47941ctode8'
+        HTTP_HEADERS = {'X-API-Version': 1,
+                        'X-API-CompanyId': 'GUAP',
+                        'X-API-ImporterName': 'GUAP',
+                        'X-API-Auth-Token': token}
+        string_timestamp = '1588636800'
+        url = 'https://' + ip + ':17443/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&filter[date][from]=' + string_timestamp
+        req = urllib.request.Request(url, headers=HTTP_HEADERS)
+        data = []
+        with urllib.request.urlopen(req, context=ssl._create_unverified_context()) as response:
+            the_page = response.read()
+            data = json.loads(the_page)
+        self.real_events = data['data']
+
+    def find_all_by_id(self, filename, sender, recipient):
+        found_events = []
+        for event in self.real_events:
+            if event['filename'] == filename and event['sender'] == sender and event['recipient'] == recipient:
                 found_events.append(event)
         return found_events
 
@@ -107,6 +102,7 @@ class EventService:
     def compare(self):
         self.deltas = []
         delta_id = 1
+        self.align_real()
         for template_event, real_event in zip(self.template_events, self.real_events):
             event_delta = {}
             diff_policies = []
@@ -116,6 +112,7 @@ class EventService:
             event_delta['policies'] = diff_policies
 
             diff_tags = []
+
             for tag in real_event['tags']:
                 if tag['DISPLAY_NAME'] not in template_event['tags']:
                     diff_tags.append(tag['DISPLAY_NAME'])
