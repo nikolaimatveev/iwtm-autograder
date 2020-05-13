@@ -50,6 +50,11 @@
                 {{ policy }} 
               {% endfor %}
             </span><br>
+            <span>Protected documents: 
+              {% for document in event.protected_documents %}
+                  {{ document }}
+              {% endfor %}
+            </span><br>
             <span>Verdict: {{ event.verdict }}</span><br>
             <span>Violation level: {{ event.violation_level }}</span><br>
             <span>Tags:

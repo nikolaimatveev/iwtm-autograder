@@ -23,6 +23,7 @@ class EventService:
                 event['sender'] = row['sender']
                 event['recipient'] = row['recipient']
                 event['policies'] = row['policies'].split(',')
+                event['protected_documents'] = row['protected_documents'].split(',')
                 event['verdict'] = row['verdict']
                 event['violation_level'] = row['violation_level']
                 event['tags'] = row['tags'].split(',')
@@ -46,14 +47,16 @@ class EventService:
             event['recipient'] = event_recipient
             event['filename'] = event_filename
     
-    def load_events_from_iwtm(self, ip, token):
+    # Почему в событии появился объект защиты, который не указан в политике?
+    # protected_documents - объекты защиты
+    def load_events_from_iwtm(self, ip, token, timestamp):
         #token = '1bs23q0mf47941ctode8'
         HTTP_HEADERS = {'X-API-Version': 1,
                         'X-API-CompanyId': 'GUAP',
                         'X-API-ImporterName': 'GUAP',
                         'X-API-Auth-Token': token}
-        string_timestamp = '1588759200'
-        url = 'https://' + ip + ':17443/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&filter[date][from]=' + string_timestamp
+        #string_timestamp = '1588759200'
+        url = 'https://' + ip + ':17443/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&filter[date][from]=' + timestamp
         req = urllib.request.Request(url, headers=HTTP_HEADERS)
         data = []
         with urllib.request.urlopen(req, context=ssl._create_unverified_context()) as response:
@@ -61,6 +64,7 @@ class EventService:
             data = json.loads(the_page)
         self.real_events = data['data']
         self.fix_real()
+        return self.real_events
 
     def find_by_id(self, filename, sender, recipient):
         found_event = {}
@@ -116,8 +120,16 @@ class EventService:
                     diff_policies.append(policy['DISPLAY_NAME'])
             event_delta['policies'] = diff_policies
 
+            diff_documents = []
+            if not real_event['protected_documents']:
+                real_event['protected_documents'] = [{'DISPLAY_NAME': 'No'}]            
+            
+            for document in real_event['protected_documents']:
+                if document['DISPLAY_NAME'] not in template_event['protected_documents']:
+                    diff_documents.append(document['DISPLAY_NAME'])
+            event_delta['protected_documents'] = diff_documents
+            
             diff_tags = []
-
             if not real_event['tags']:
                 real_event['tags'] = [{'DISPLAY_NAME': 'No'}]
 

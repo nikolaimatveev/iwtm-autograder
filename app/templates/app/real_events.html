@@ -7,6 +7,11 @@
                     {{ policy.DISPLAY_NAME }}
                 {% endfor %}
               </span><br>
+              <span>Protected documents: 
+                {% for document in event.protected_documents %}
+                    {{ document.DISPLAY_NAME }}
+                {% endfor %}
+              </span><br>
               <span>Verdict: {{ event.VERDICT }}</span><br>
               <span>Violation level: {{ event.VIOLATION_LEVEL }}</span><br>
               <span>Tags:

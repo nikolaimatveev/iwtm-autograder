@@ -5,7 +5,7 @@ import json
 from .models import Event
 from .services import EventService
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.http import HttpResponseRedirect
 
 event_service = EventService()
@@ -22,7 +22,7 @@ def index(request):
     
     if request.method=='POST' and 'iw_ip' in request.POST:
         #event_service.load_real('app/static/sample-events.json')
-        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'])
+        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1589364000')
         return HttpResponseRedirect('/') 
     
     context = {'template_events': event_service.template_events,
@@ -32,9 +32,18 @@ def index(request):
     return render(request, 'app/index.html', context)
 
 def list_real_events(request):
-    events = event_service.load_events_from_iwtm()
-    json_pretty = json.dumps(events, indent=4, ensure_ascii=False)
-    return HttpResponse(json_pretty, content_type="application/json; charset=utf-8")
+
+    iw_ip = request.GET.get('ip')
+    token = request.GET.get('token')
+    timestamp = request.GET.get('timestamp')
+
+    result = {}
+    if iw_ip and token and timestamp:
+        result = event_service.load_events_from_iwtm(iw_ip, token, timestamp)
+    else:
+        result['message'] = 'Error: parameters not specified'
+    return JsonResponse(result, safe=False, json_dumps_params={'indent': 4, 'ensure_ascii': False})
+    #return HttpResponse(json_pretty, content_type="application/json; charset=utf-8")
 
 def compare_events(request):
     event_service.compare()

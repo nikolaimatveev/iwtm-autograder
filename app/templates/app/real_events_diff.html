@@ -9,6 +9,13 @@
                   </span>
                 {% endfor %}
               </span><br>
+              <span>Protected documents: 
+                {% for document in event.protected_documents %}
+                  <span {% if document.DISPLAY_NAME in delta.protected_documents %} class="bg-danger" {% endif %} >
+                    {{ document.DISPLAY_NAME }}
+                  </span>
+                {% endfor %}
+              </span><br>
               <span>
                 Verdict: 
                 {% if delta.verdict.name == event.VERDICT %}
