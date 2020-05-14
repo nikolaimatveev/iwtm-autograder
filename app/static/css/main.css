@@ -1,0 +1,30 @@
+.threat-level {
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    left: 18px;
+    width: 5px;
+    border-radius: 3px;
+}
+
+.threat-level[data-threat=low] {
+    background-color: #86b375;
+}
+
+.threat-level[data-threat=medium] {
+    background-color: #fb5;
+}
+
+.threat-level[data-threat=high] {
+    background-color: salmon;
+}
+
+.threat-level[data-threat=no] {
+    background-color: #ccc;
+}
+
+.event-item {
+    position: relative;
+    padding: 10px 15px 10px 35px;
+    border-top: 1px solid #ddd;
+}

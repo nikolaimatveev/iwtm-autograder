@@ -1,38 +1,34 @@
 {% for event, delta in real_events_diff %}
-            <div class="border-top border-dark">
-              <span>{{ event.sender }} &rArr; {{ event.recipient }}</span><br>
-              <span>File: {{ event.filename }}</span><br>
-              <span>Policies: 
+            <div class="event-item">
+              <div class="threat-level" data-threat="{{ event.VIOLATION_LEVEL|lower }}"></div>
+              <div>{{ event.sender }} &rArr; {{ event.recipient }} Файл: {{ event.filename }}</div>
+              <div>Политики: 
                 {% for policy in event.policies %}
                   <span {% if policy.DISPLAY_NAME in delta.policies %} class="bg-danger" {% endif %} >
                     {{ policy.DISPLAY_NAME }}
                   </span>
                 {% endfor %}
-              </span><br>
-              <span>Protected documents: 
+              </div>
+              <div>Объекты защиты: 
                 {% for document in event.protected_documents %}
                   <span {% if document.DISPLAY_NAME in delta.protected_documents %} class="bg-danger" {% endif %} >
                     {{ document.DISPLAY_NAME }}
                   </span>
                 {% endfor %}
-              </span><br>
-              <span>
-                Verdict: 
+                </div>
+              <div>Вердикт: 
                 {% if delta.verdict.name == event.VERDICT %}
                   <span  class="bg-danger"><a href="skip?id={{ delta.verdict.id }}">{{ event.VERDICT }}</a></span>
                 {% else %}
                   <span>{{ event.VERDICT }}</span>
                 {% endif %}
-              </span><br>
-              <span>
-                Violation level: <span {% if delta.violation_level == event.VIOLATION_LEVEL %} class="bg-danger" {% endif %} >{{ event.VIOLATION_LEVEL }}</span>
-              </span><br>
-              <span>Tags:
+              </div>
+              <div>Теги:
                 {% for tag in event.tags %}
                   <span {% if tag.DISPLAY_NAME in delta.tags %} class="bg-danger" {% endif %} >
                     {{ tag.DISPLAY_NAME }}
                   </span>
               {% endfor %}
-              </span>
+              </div>
             </div>
 {% endfor %}

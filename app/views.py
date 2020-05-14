@@ -43,7 +43,6 @@ def list_real_events(request):
     else:
         result['message'] = 'Error: parameters not specified'
     return JsonResponse(result, safe=False, json_dumps_params={'indent': 4, 'ensure_ascii': False})
-    #return HttpResponse(json_pretty, content_type="application/json; charset=utf-8")
 
 def compare_events(request):
     event_service.compare()
