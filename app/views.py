@@ -4,6 +4,7 @@ import json
 
 from .models import Event
 from .services import EventService
+from itertools import zip_longest
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.http import HttpResponseRedirect
@@ -22,11 +23,11 @@ def index(request):
     
     if request.method=='POST' and 'iw_ip' in request.POST:
         #event_service.load_real('app/static/sample-events.json')
-        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1589364000')
+        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1590048000')
         return HttpResponseRedirect('/') 
-    
-    context = {'template_events': event_service.template_events,
-                'real_events': event_service.real_events}
+    context = {}
+    if event_service.real_events:
+        context['events'] = zip_longest(event_service.real_events, event_service.template_events)
     if event_service.deltas:
         context['real_events_diff'] = zip(event_service.real_events, event_service.deltas)
     return render(request, 'app/index.html', context)
@@ -45,8 +46,10 @@ def list_real_events(request):
     return JsonResponse(result, safe=False, json_dumps_params={'indent': 4, 'ensure_ascii': False})
 
 def compare_events(request):
-    event_service.compare()
-    return HttpResponseRedirect('/')
+    event_service.task_compare()
+    context = {}
+    context['tasks'] = event_service.tasks
+    return render(request, 'app/results.html', context)
 
 def add_delta(request):
     print(request.GET['id'])

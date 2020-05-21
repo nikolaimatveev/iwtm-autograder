@@ -12,6 +12,8 @@ class Event:
         self.tag = tag
 
 class Task:
-    def __init__(self, number, events):
+    def __init__(self, number, real_events, template_events, summary):
         self.number = number
-        self.events = events
+        self.real_events = real_events
+        self.template_events = template_events
+        self.summary = summary

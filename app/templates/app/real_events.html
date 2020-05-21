@@ -1,7 +1,7 @@
 {% for event in real_events %}
             <div class="event-item">
               <div class="threat-level" data-threat="{{ event.VIOLATION_LEVEL|lower }}"></div>
-              <div>{{ event.sender }} &rArr; {{ event.recipient }} Файл: {{ event.filename }}</div>
+              <div>ID: {{ event.OBJECT_ID }} {{ event.CAPTURE_DATE }} {{ event.sender }} &rArr; {{ event.recipient }} Файл: {{ event.filename }}</div>
               <div>Политики: 
                 {% for policy in event.policies %}
                     {{ policy.DISPLAY_NAME }}
@@ -12,11 +12,10 @@
                     {{ document.DISPLAY_NAME }}
                 {% endfor %}
               </div>
-              <div>Вердикт: {{ event.VERDICT }}</div>
-              <div>Теги:
+              <div>Вердикт: {{ event.VERDICT }} Теги:
                 {% for tag in event.tags %}
                   {{ tag.DISPLAY_NAME }}
-              {% endfor %}
+                {% endfor %}
               </div>
             </div>
 {% endfor %}

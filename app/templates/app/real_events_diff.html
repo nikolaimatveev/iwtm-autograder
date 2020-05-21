@@ -1,7 +1,7 @@
 {% for event, delta in real_events_diff %}
             <div class="event-item">
               <div class="threat-level" data-threat="{{ event.VIOLATION_LEVEL|lower }}"></div>
-              <div>{{ event.sender }} &rArr; {{ event.recipient }} Файл: {{ event.filename }}</div>
+              <div>ID: {{ event.OBJECT_ID }} {{ event.CAPTURE_DATE }} {{ event.sender }} &rArr; {{ event.recipient }} Файл: {{ event.filename }}</div>
               <div>Политики: 
                 {% for policy in event.policies %}
                   <span {% if policy.DISPLAY_NAME in delta.policies %} class="bg-danger" {% endif %} >
@@ -16,19 +16,14 @@
                   </span>
                 {% endfor %}
                 </div>
-              <div>Вердикт: 
-                {% if delta.verdict.name == event.VERDICT %}
-                  <span  class="bg-danger"><a href="skip?id={{ delta.verdict.id }}">{{ event.VERDICT }}</a></span>
-                {% else %}
-                  <span>{{ event.VERDICT }}</span>
-                {% endif %}
-              </div>
-              <div>Теги:
-                {% for tag in event.tags %}
-                  <span {% if tag.DISPLAY_NAME in delta.tags %} class="bg-danger" {% endif %} >
-                    {{ tag.DISPLAY_NAME }}
+              <div>Вердикт:
+                  <span {% if delta.verdict.name == event.VERDICT %} class="bg-danger" {% endif %}>{{ event.VERDICT }} Теги:
+                    {% for tag in event.tags %}
+                      <span {% if tag.DISPLAY_NAME in delta.tags %} class="bg-danger" {% endif %} >
+                        {{ tag.DISPLAY_NAME }}
+                      </span>
+                    {% endfor %}
                   </span>
-              {% endfor %}
               </div>
             </div>
 {% endfor %}

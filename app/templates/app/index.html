@@ -38,22 +38,58 @@
       <div class="row mb-2">
         <div class="col-sm"></div>
         <div class="col-sm"></div>
-        <div class="col-sm"><a class="btn btn-success" href="compare" role="button">Check</a></div>
+        <div class="col-sm"><a class="btn btn-success" href="results" role="button">Check</a></div>
         <div class="col-sm"></div>
         <div class="col-sm"></div>
       </div>
+      {% if events %}
+      {% for real_event, template_event in events %}
       <div class="row">
-        <div class="col">
-          {% if real_events_diff %}
-              {% include "app/real_events_diff.html" %}
-            {% else %}
-              {% include "app/real_events.html" %}
-            {% endif %}
+        <div class ="col-md-6">
+          <div class="event-item">
+            <div class="threat-level" data-threat="{{ real_event.VIOLATION_LEVEL|lower }}"></div>
+            <div>ID: {{ real_event.OBJECT_ID }} {{ real_event.CAPTURE_DATE }} {{ real_event.sender }} &rArr; {{ real_event.recipient }} Файл: {{ real_event.filename }}</div>
+            <div>Политики: 
+              {% for policy in real_event.policies %}
+                  {{ policy.DISPLAY_NAME }}
+              {% endfor %}
+            </div>
+            <div>Объекты защиты: 
+              {% for document in real_event.protected_documents %}
+                  {{ document.DISPLAY_NAME }}
+              {% endfor %}
+            </div>
+            <div>Вердикт: {{ real_event.VERDICT }}; Теги:
+              {% for tag in real_event.tags %}
+                {{ tag.DISPLAY_NAME }}
+              {% endfor %}
+            </div>
+          </div>
         </div>
-        <div class="col">
-          {% include "app/template_events.html" %}
+        <div class="col-md-6">
+          <div class="event-item">
+            <div class="threat-level" data-threat="{{ template_event.violation_level|lower }}"></div>
+            <div>{{ template_event.sender }} &rArr; {{ template_event.recipient }} Файл: {{ template_event.filename }}</div>
+            <div>Политики: 
+              {% for policy in template_event.policies %}
+                {{ policy }} 
+              {% endfor %}
+            </div>
+            <div>Объекты защиты: 
+              {% for document in template_event.protected_documents %}
+                  {{ document }}
+              {% endfor %}
+            </div>
+            <div>Вердикт: {{ template_event.verdict }}; Теги:
+              {% for tag in template_event.tags %}
+                {{ tag }}  
+              {% endfor %}
+            </div>
+          </div>
         </div>
       </div>
+      {% endfor %}
+      {% endif %}      
     </div>
   </body>
 </html>

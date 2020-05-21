@@ -1,0 +1,106 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <script src="{% static 'js/jquery-3.5.1.slim.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <title>IW AutoGrader</title>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col">
+            <h2 class="sub-header">Фактические события</h2>
+            <form action="/" method="post">
+              {% csrf_token %}
+              <label for="iw_ip">IP: </label>
+              <input id="iw_ip" type="text" name="iw_ip">
+              <label for="iw_token">Token: </label>
+              <input id="iw_token" type="text" name="iw_token">
+              <input type="submit" value="load">
+            </form>
+        </div>
+        <div class="col">
+          <h2 class="sub-header">Шаблон</h2>
+          <form action="/" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label for="file">Файл:</label>
+            <input type="file" id="file" name="template_file">
+            <input type="submit" name="template" value="load">
+          </form>
+        </div>
+      </div>
+      <div class="row mb-2">
+        <div class="col-sm"></div>
+        <div class="col-sm"></div>
+        <div class="col-sm"><a class="btn btn-success" href="results" role="button">Check</a></div>
+        <div class="col-sm"></div>
+        <div class="col-sm"></div>
+      </div>
+      {% for task in tasks %}
+        {% for real_event, template_event, delta in task.events_deltas %}
+        <div class="row">
+          <div class ="col-md-6">
+            <div class="event-item">
+              <div class="threat-level" data-threat="{{ real_event.VIOLATION_LEVEL|lower }}"></div>
+              <div>ID: {{ real_event.OBJECT_ID }} {{ real_event.CAPTURE_DATE }} {{ real_event.sender }} &rArr; {{ real_event.recipient }} Файл: {{ real_event.filename }}</div>
+              <div>Политики: 
+                {% for policy in real_event.policies %}
+                <span {% if policy.DISPLAY_NAME in delta.policies %} class="bg-danger" {% endif %} >
+                  {{ policy.DISPLAY_NAME }}
+                </span>
+                {% endfor %}
+              </div>
+              <div>Объекты защиты: 
+                {% for document in real_event.protected_documents %}
+                <span {% if document.DISPLAY_NAME in delta.protected_documents %} class="bg-danger" {% endif %} >
+                  {{ document.DISPLAY_NAME }}
+                </span>
+                {% endfor %}
+              </div>
+              <div>Вердикт: <span {% if delta.verdict.name == event.VERDICT %} class="bg-danger" {% endif %}>{{ real_event.VERDICT }};</span> Теги:
+                {% for tag in real_event.tags %}
+                <span {% if tag.DISPLAY_NAME in delta.tags %} class="bg-danger" {% endif %} >
+                  {{ tag.DISPLAY_NAME }}
+                </span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="event-item">
+              <div class="threat-level" data-threat="{{ template_event.violation_level|lower }}"></div>
+              <div>{{ template_event.sender }} &rArr; {{ template_event.recipient }} Файл: {{ template_event.filename }}</div>
+              <div>Политики: 
+                {% for policy in template_event.policies %}
+                  {{ policy }} 
+                {% endfor %}
+              </div>
+              <div>Объекты защиты: 
+                {% for document in template_event.protected_documents %}
+                    {{ document }}
+                {% endfor %}
+              </div>
+              <div>Вердикт: {{ template_event.verdict }}; Теги:
+                {% for tag in template_event.tags %}
+                  {{ tag }}  
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      <div class="row border-top border-bottom border-dark">
+        <div class="col-md-12 d-flex justify-content-center text-center">
+          <span class="font-weight-bold">Задание {{ task.number }}. Результат: лт x {{ task.wrong_tags }}</span>
+        </div>
+      </div>
+      {% endfor %}    
+    </div>
+  </body>
+</html>
