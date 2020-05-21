@@ -144,20 +144,25 @@ class EventService:
                 if not real_event['policies']:
                     real_event['policies'] = [{'DISPLAY_NAME': 'No'}]
 
+                wrong_policy_count = 0                
                 for policy in real_event['policies']:
                     if policy['DISPLAY_NAME'] not in template_event['policies']:
                         diff_policies.append(policy['DISPLAY_NAME'])
+                        wrong_policy_count += 1
                 event_delta['policies'] = diff_policies
+                event_delta['wrong_policies'] = wrong_policy_count
 
                 diff_documents = []
                 if not real_event['protected_documents']:
                     real_event['protected_documents'] = [{'DISPLAY_NAME': 'No'}]            
                 
+                wrong_document_count = 0
                 for document in real_event['protected_documents']:
                     if document['DISPLAY_NAME'] not in template_event['protected_documents']:
                         diff_documents.append(document['DISPLAY_NAME'])
+                        wrong_document_count += 1
                 event_delta['protected_documents'] = diff_documents
-                
+                event_delta['wrong_documents'] = wrong_document_count
                 diff_tags = []
                 if not real_event['tags']:
                     real_event['tags'] = [{'DISPLAY_NAME': 'No'}]
@@ -182,9 +187,13 @@ class EventService:
                     else 'ok'
                 )
                 task_wrong_tags += event_delta['wrong_tags']
+                task_wrong_policies += event_delta['wrong_policies']
+                task_wrong_documents += event_delta['wrong_documents']
                 task_deltas.append(event_delta)
             task['events_deltas'] = zip(task['real_events'], task['template_events'], task_deltas)
             task['wrong_tags'] = task_wrong_tags
+            task['wrong_policies'] = task_wrong_policies
+            task['wrong_documents'] = task_wrong_documents
 
     def compare(self):
         self.deltas = []

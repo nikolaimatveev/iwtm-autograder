@@ -23,7 +23,7 @@ def index(request):
     
     if request.method=='POST' and 'iw_ip' in request.POST:
         #event_service.load_real('app/static/sample-events.json')
-        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1590048000')
+        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1589364000')
         return HttpResponseRedirect('/') 
     context = {}
     if event_service.real_events:
