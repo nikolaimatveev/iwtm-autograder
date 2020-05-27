@@ -1,5 +1,5 @@
 task_number;filename;sender;recipient;policies;protected_documents;verdict;violation_level;tags
-3;report.jpg;Tenders;External;Политика 3;No;Allowed;Low;No
+3;report.jpg;Tenders;External;Политика 3,Политика 4,Политика 5;No;Allowed;Low;No
 4;nepravilno.rtf;Sales;External;No;No;Allowed;No;No
 4;Wordlskilz.rtf;Sales;External;Политика 4;Задание 4;Allowed;Medium;Политика 4
 5;dogovor.doc;IT;External;Политика 5.1;Задание 5.1;Allowed;Low;Политика 5
