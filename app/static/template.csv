@@ -11,11 +11,24 @@ task_number;filename;sender;recipient;policies;protected_documents;verdict;viola
 7;promotwo.docx;Security;External;Политика 4,Политика 7;Задание 5.1;Forbidden;Medium;Политика 4,Политика 7
 7;promoall.docx;Sales;External;No;No;Allowed;No;No
 7;promotwo.docx;Sales;External;No;No;Allowed;No;No
-8;catoo.jpg;IT;External;Политика 8;Задание 5.1;Forbidden;Low;Политика 8
+8;catoo.jpg;IT;External;Политика 8;Задание 8;Forbidden;Low;Политика 8
 8;catoo_reduced.jpg;IT;External;No;No;Allowed;No;No
-8;catoo.jpg;IT;Security;Политика 8;Задание 5.1;Forbidden;Low;Политика 8
+8;catoo.jpg;IT;Security;Политика 8;Задание 8;Forbidden;Low;Политика 8
 8;catoo_reduced.jpg;IT;Security;No;No;Allowed;No;No
-9;evil_routes.rtf;Sales;IT;Политика 9;Задание 5.1;Allowed;Medium;Политика 9
-9;routes.rtf;Sales;IT;Политика 9;Задание 5.1;Allowed;Medium;Политика 9
-9;evil_routes.rtf;Accounting;Sales;No;No;Allowed;No;No
-9;routes.rtf;Accounting;Sales;No;No;Allowed;No;No
+9;evil_routes.rtf;Sales;IT;Политика 9;Задание 9;Allowed;Medium;Политика 9
+9;routes.rtf;Sales;IT;Политика 9;Задание 9;Allowed;Medium;Политика 9
+9;evil_routes.rtf;Accounting;Sales;No;Задание 9;Allowed;No;No
+9;routes.rtf;Accounting;Sales;No;Задание 9;Allowed;No;No
+10;candy.rtf;Accounting;Sales;Политика 10;Задание 10;Allowed;Medium;Политика 10
+10;candy.rtf;IT;Security;Политика 10;Задание 10;Allowed;Medium;Политика 10
+11;taxi.rtf;IT;External;Политика 11;Задание 11;Allowed;Medium;Политика 11
+12;dbfull.csv;IT;External;Политика 12;Задание 12;Allowed;Medium;Политика 12
+12;dbsmall.csv;IT;External;Политика 12;No;Allowed;No;No
+12;dbfull.csv;Sales;External;Политика 12;Задание 12;Allowed;No;No
+12;dbsmall.csv;Sales;External;Политика 12;No;Allowed;No;No
+13;email.docx;IT;External;Политика 13;Задание 13;Allowed;Medium;Политика 13
+13;ne-email.docx;IT;External;No;No;Allowed;No;No
+14;konfidencialno.rtf;IT;External;Политика 14;Задание 14;Forbidden;High;Политика 14
+14;strogo_konfidencialno.pdf;IT;External;Политика 14;Задание 14;Forbidden;High;Политика 14
+14;strogo_konfidencialno_m.rtf;IT;External;Политика 14;Задание 14;Forbidden;High;Политика 14
+15;win1.zip;Accounting;External;Политика 15;No;Forbidden;Low;Политика 15
