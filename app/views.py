@@ -29,8 +29,8 @@ def upload_template_events(request):
 
 def upload_real_events(request):
     if request.method=='POST':
-        #event_service.load_real('app/static/sample-events.json')
-        event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1589364000')
+        event_service.load_real('app/static/sample-events.json')
+        #event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1589364000')
     return HttpResponseRedirect('/') 
 
 def list_real_events(request):
