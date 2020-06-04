@@ -133,6 +133,83 @@ class EventService:
             tasks.append(task)
         return tasks
 
+    def check_policies(self):
+        self.deltas = []
+        self.align_real()
+        self.tasks = self.create_task_list()
+        for t1 in self.tasks:
+            task_deltas = []
+            policy = 'Политика ' + t1['number']
+            protected_document = 'Задание ' + t1['number']
+            wrong_policy_count = 0
+            missing_policy_count = 0
+            wrong_tag_count = 0
+            wrong_document_count = 0
+            missing_document_count = 0
+            self.tasks2 = self.create_task_list()
+            for t2 in self.tasks2:
+                for real_event, template_event in t2['events']:
+                    if template_event['task_number'] != t1['number']:
+                        if policy in real_event['policies']:
+                            wrong_policy_count += 1
+                        if protected_document in real_event['protected_documents']:
+                            wrong_document_count += 1
+                    else:
+                        for p in template_event['policies']:
+                            if p not in real_event['policies']:
+                                missing_policy_count += 1
+                        for doc in template_event['protected_documents']:
+                            if doc not in real_event['protected_documents']:
+                                missing_document_count += 1
+                        for tag in real_event['tags']:
+                            if tag['DISPLAY_NAME'] not in template_event['tags']:
+                                wrong_tag_count += 1
+            for real_event, template_event in t1['events']:
+                event_delta = {}
+                diff_policies = []       
+                for policy in real_event['policies']:
+                    if policy not in template_event['policies']:
+                        diff_policies.append(policy)
+                event_delta['policies'] = diff_policies
+
+                diff_documents = []
+                for document in real_event['protected_documents']:
+                    if document not in template_event['protected_documents']:
+                        diff_documents.append(document)
+                event_delta['protected_documents'] = diff_documents
+
+                diff_tags = []
+                if not real_event['tags']:
+                    real_event['tags'] = [{'DISPLAY_NAME': 'No'}]
+                for tag in real_event['tags']:
+                    if tag['DISPLAY_NAME'] not in template_event['tags']:
+                        diff_tags.append(tag['DISPLAY_NAME'])
+                event_delta['tags'] = diff_tags
+
+                event_delta['verdict'] = (
+                    real_event['VERDICT']
+                    if template_event['verdict'] != real_event['VERDICT']
+                    else 'ok'
+                )
+
+                event_delta['violation_level'] = (
+                    real_event['VIOLATION_LEVEL']
+                    if template_event['violation_level'] != real_event['VIOLATION_LEVEL']
+                    else 'ok'
+                )
+                task_deltas.append(event_delta)
+            t1['events_deltas'] = zip(t1['real_events'], t1['template_events'], task_deltas)
+            t1['wrong_policies'] = wrong_policy_count
+            t1['missing_policies'] = missing_policy_count
+            t1['wrong_tags'] = wrong_tag_count
+            t1['wrong_documents'] = wrong_document_count
+            t1['missing_documents'] = missing_document_count
+            t1['doc_errors'] = wrong_document_count + missing_document_count
+            t1['total_errors'] = (wrong_tag_count + wrong_policy_count + 
+                                    missing_policy_count + wrong_document_count + 
+                                    missing_document_count)
+        self.save_results()
+
     def task_compare(self):
         self.deltas = []
         self.align_real()
@@ -228,6 +305,7 @@ class EventService:
             task['missing_policies'] = task_missing_policies
             task['wrong_documents'] = task_wrong_documents
             task['missing_documents'] = task_missing_documents
+            task['doc_errors'] = task_wrong_documents + task_missing_documents
             task['total_errors'] = (task_wrong_tags + task_wrong_policies + 
                                     task_missing_policies + task_wrong_documents + 
                                     task_missing_documents)
@@ -285,6 +363,43 @@ class EventService:
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
             sheet.cell(x_idx, y_idx).value = task['total_errors']
+            sheet.cell(x_idx, y_idx).border = thin_border
+        
+        
+        column_headers_doc = ['Ложные объекты', 'Отсутствующие объекты', 'Итого недочетов']
+        y_idx = start_y
+        x_idx += 3
+        sheet.cell(x_idx, y_idx).border = thin_border
+        sheet.column_dimensions[get_column_letter(y_idx)].width = 20
+        y_idx += 1
+        sheet.cell(x_idx, y_idx).border = thin_border
+        sheet.column_dimensions[get_column_letter(y_idx)].width = 15
+        y_idx += 1
+        for header in column_headers_doc:
+            sheet.cell(x_idx, y_idx).value = header
+            sheet.cell(x_idx, y_idx).border = thin_border
+            sheet.cell(x_idx, y_idx).alignment = cell_align
+            sheet.column_dimensions[get_column_letter(y_idx)].width = 15
+            y_idx += 1
+
+        for task in self.tasks:
+            if task['number'] == '3':
+                continue
+            x_idx += 1
+            y_idx = start_y
+            sheet.cell(x_idx, y_idx).value = 'Объект защиты №' + task['number']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = 'Задание №' + task['number']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = task['wrong_documents']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = task['missing_documents']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = task['doc_errors']
             sheet.cell(x_idx, y_idx).border = thin_border
         
         book.save("app/static/results.xlsx")

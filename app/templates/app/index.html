@@ -39,7 +39,13 @@
       <div class="row mb-2">
         <div class="col-sm"></div>
         <div class="col-sm"></div>
-        <div class="col-sm"><a class="btn btn-success" href="results" role="button">Check</a></div>
+        <div class="col-sm">
+          <form action="results" method="post">
+            {% csrf_token %}
+            <input type="checkbox" name="alg-type" value="new">
+            <button type="submit" class="btn btn-success">check</button>
+          </form>
+        </div>
         <div class="col-sm"></div>
         <div class="col-sm"></div>
       </div>

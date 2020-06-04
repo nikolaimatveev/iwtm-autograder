@@ -47,7 +47,11 @@ def list_real_events(request):
     return JsonResponse(result, safe=False, json_dumps_params={'indent': 4, 'ensure_ascii': False})
 
 def compare_events(request):
-    event_service.task_compare()
+    if request.method=='POST':
+        if 'new' in request.POST.getlist('alg-type'):
+            event_service.check_policies()
+        else:
+            event_service.task_compare()
     context = {}
     context['tasks'] = event_service.tasks
     return render(request, 'app/results.html', context)
