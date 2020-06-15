@@ -133,7 +133,7 @@ class EventService:
             tasks.append(task)
         return tasks
 
-    def check_policies(self):
+    def check_tasks_first_method(self):
         self.deltas = []
         self.align_real()
         self.tasks = self.create_task_list()
@@ -146,15 +146,23 @@ class EventService:
             wrong_tag_count = 0
             wrong_document_count = 0
             missing_document_count = 0
+            wrong_verdict_count = 0
+            wrong_violation_level_count = 0
             self.tasks2 = self.create_task_list()
             for t2 in self.tasks2:
                 for real_event, template_event in t2['events']:
                     if template_event['task_number'] != t1['number']:
-                        if policy in real_event['policies']:
+                        if policy in real_event['policies'] and policy not in template_event['policies']:
                             wrong_policy_count += 1
                         if protected_document in real_event['protected_documents']:
                             wrong_document_count += 1
                     else:
+                        #for p in real_event['policies']:
+                        #    if p not in template_event['policies']:
+                        #        wrong_policy_count += 1
+                        #for doc in real_event['protected_documents']:
+                        #    if doc not in template_event['protected_documents']:
+                        #        wrong_document_count += 1
                         for p in template_event['policies']:
                             if p not in real_event['policies']:
                                 missing_policy_count += 1
@@ -186,17 +194,18 @@ class EventService:
                         diff_tags.append(tag['DISPLAY_NAME'])
                 event_delta['tags'] = diff_tags
 
-                event_delta['verdict'] = (
-                    real_event['VERDICT']
-                    if template_event['verdict'] != real_event['VERDICT']
-                    else 'ok'
-                )
+                if template_event['verdict'] != real_event['VERDICT']:
+                    event_delta['verdict'] = real_event['VERDICT']
+                    wrong_verdict_count += 1
+                else:
+                     event_delta['verdict'] = 'ok'
 
-                event_delta['violation_level'] = (
-                    real_event['VIOLATION_LEVEL']
-                    if template_event['violation_level'] != real_event['VIOLATION_LEVEL']
-                    else 'ok'
-                )
+                if template_event['violation_level'] != real_event['VIOLATION_LEVEL']:
+                    event_delta['violation_level'] = real_event['VIOLATION_LEVEL']
+                    wrong_violation_level_count += 1
+                else:
+                    event_delta['violation_level'] = 'ok'
+
                 task_deltas.append(event_delta)
             t1['events_deltas'] = zip(t1['real_events'], t1['template_events'], task_deltas)
             t1['wrong_policies'] = wrong_policy_count
@@ -205,12 +214,15 @@ class EventService:
             t1['wrong_documents'] = wrong_document_count
             t1['missing_documents'] = missing_document_count
             t1['doc_errors'] = wrong_document_count + missing_document_count
+            t1['wrong_verdict'] = wrong_verdict_count
+            t1['wrong_violation_level'] = wrong_violation_level_count
             t1['total_errors'] = (wrong_tag_count + wrong_policy_count + 
                                     missing_policy_count + wrong_document_count + 
-                                    missing_document_count)
+                                    missing_document_count + wrong_verdict_count +
+                                    wrong_violation_level_count)
         self.save_results()
 
-    def task_compare(self):
+    def check_tasks_second_method(self):
         self.deltas = []
         self.align_real()
         self.tasks = self.create_task_list()
@@ -222,6 +234,8 @@ class EventService:
             task_wrong_documents = 0
             task_missing_documents = 0
             task_total_errors = 0
+            wrong_verdict_count = 0
+            wrong_violation_level_count = 0
             
             for real_event, template_event in task['events']:
                 event_delta = {}
@@ -282,17 +296,18 @@ class EventService:
                 event_delta['tags'] = diff_tags
                 event_delta['wrong_tags'] = wrong_tag_count
 
-                event_delta['verdict'] = (
-                    real_event['VERDICT']
-                    if template_event['verdict'] != real_event['VERDICT']
-                    else 'ok'
-                )
+                if template_event['verdict'] != real_event['VERDICT']:
+                    event_delta['verdict'] = real_event['VERDICT']
+                    wrong_verdict_count += 1
+                else:
+                     event_delta['verdict'] = 'ok'
 
-                event_delta['violation_level'] = (
-                    real_event['VIOLATION_LEVEL']
-                    if template_event['violation_level'] != real_event['VIOLATION_LEVEL']
-                    else 'ok'
-                )
+                if template_event['violation_level'] != real_event['VIOLATION_LEVEL']:
+                    event_delta['violation_level'] = real_event['VIOLATION_LEVEL']
+                    wrong_violation_level_count += 1
+                else:
+                    event_delta['violation_level'] = 'ok'
+                
                 task_wrong_tags += event_delta['wrong_tags']
                 task_wrong_policies += event_delta['wrong_policies']
                 task_missing_policies += event_delta['missing_policies']
@@ -306,9 +321,12 @@ class EventService:
             task['wrong_documents'] = task_wrong_documents
             task['missing_documents'] = task_missing_documents
             task['doc_errors'] = task_wrong_documents + task_missing_documents
+            task['wrong_verdict'] = wrong_verdict_count
+            task['wrong_violation_level'] = wrong_violation_level_count
             task['total_errors'] = (task_wrong_tags + task_wrong_policies + 
                                     task_missing_policies + task_wrong_documents + 
-                                    task_missing_documents)
+                                    task_missing_documents + wrong_verdict_count + 
+                                    wrong_violation_level_count)
         self.save_results()
     
     def save_results(self):
@@ -321,8 +339,10 @@ class EventService:
         sheet = book.active
         x_idx = start_x
         y_idx = start_y
-        column_headers = ['Ложные теги', 'Ложные политики', 'Отсутствующие политики', 
-                        'Ложные объекты', 'Отсутствующие объекты', 'Итого недочетов']
+        column_headers = ['Ложные политики', 'Отсутствующие политики', 
+                        'Ложные объекты', 'Отсутствующие объекты', 
+                        'Ложные теги', 'Ложные вердикты',
+                        'Ложные уровни нарушения', 'Итого недочетов']
         
         sheet.cell(x_idx, y_idx).border = thin_border
         sheet.column_dimensions[get_column_letter(y_idx)].width = 15
@@ -347,9 +367,6 @@ class EventService:
             sheet.cell(x_idx, y_idx).value = 'Задание №' + task['number']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['wrong_tags']
-            sheet.cell(x_idx, y_idx).border = thin_border
-            y_idx += 1
             sheet.cell(x_idx, y_idx).value = task['wrong_policies']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
@@ -360,6 +377,15 @@ class EventService:
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
             sheet.cell(x_idx, y_idx).value = task['missing_documents']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = task['wrong_tags']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = task['wrong_verdict']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = task['wrong_violation_level']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
             sheet.cell(x_idx, y_idx).value = task['total_errors']

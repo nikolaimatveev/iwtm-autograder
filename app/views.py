@@ -49,9 +49,9 @@ def list_real_events(request):
 def compare_events(request):
     if request.method=='POST':
         if 'new' in request.POST.getlist('alg-type'):
-            event_service.check_policies()
+            event_service.check_tasks_first_method()
         else:
-            event_service.task_compare()
+            event_service.check_tasks_second_method()
     context = {}
     context['tasks'] = event_service.tasks
     return render(request, 'app/results.html', context)
