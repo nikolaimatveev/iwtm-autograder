@@ -1,3 +1,5 @@
+from datetime import datetime
+
 class Event:
     def __init__(self, filename,
                  sender, recipient,
@@ -17,3 +19,9 @@ class Task:
         self.real_events = real_events
         self.template_events = template_events
         self.summary = summary
+
+class Comment(object):
+    def __init__(self, email, content, created=None):
+        self.email = email
+        self.content = content
+        self.created = created or datetime.now()

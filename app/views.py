@@ -1,65 +1,49 @@
-import datetime
-import os.path
-import json
+from app.models import Event, Comment
+from app.serializers import CommentSerializer
+from app.services import EventService
 
-from .models import Event
-from .services import EventService
-from itertools import zip_longest
-from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
-from django.http import HttpResponseRedirect
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
-event_service = EventService()
-template_path = 'app/static/upload/template.csv'
+event_service = EventService(debug_mode=True)
 
-def index(request):
-    
-    if os.path.isfile(template_path):
-        event_service.load_template(template_path)
-    
-    context = {}
-    if event_service.real_events:
-        context['events'] = zip_longest(event_service.real_events, event_service.template_events)
-    return render(request, 'app/index.html', context)
+@api_view(['POST'])
+def load_events(request):
+    #TODO: validate input params
+    iw_ip = request.POST.get('ip')
+    token = request.POST.get('token')
+    date_and_time = request.POST.get('date-time')
+    #check_mode = request.POST.get('check-mode')
+    template_file = request.FILES['template-file']
+    template_file_path = 'app/static/upload/' + template_file.name
+    print(iw_ip, token, date_and_time, template_file)
+    event_service.load_grouped_events(iw_ip,
+                                      token,
+                                      date_and_time, 
+                                      template_file_path,
+                                      template_file)
+    return Response({'message': 'Success'}, status=status.HTTP_201_CREATED)
 
-def upload_template_events(request):
-    if request.method == 'POST':
-        save_template_file(request.FILES['template_file'])
-    return HttpResponseRedirect('/')
+@api_view(['GET'])
+def check_events(request):
+    print('todo')
+    comment = Comment(email='leila@example.com', content='check events')
+    serializer = CommentSerializer(comment)
+    return Response(serializer.data)
 
-def upload_real_events(request):
-    if request.method=='POST':
-        event_service.load_real('app/static/sample-events.json')
-        #event_service.load_events_from_iwtm(request.POST['iw_ip'], request.POST['iw_token'], '1589364000')
-    return HttpResponseRedirect('/') 
+@api_view(['GET'])
+def get_participant_ip_list(request):
+    ip_list = event_service.get_participant_ip_list()
+    return Response(ip_list)
 
-def list_real_events(request):
-
-    iw_ip = request.GET.get('ip')
-    token = request.GET.get('token')
-    timestamp = request.GET.get('timestamp')
-
+@api_view(['GET'])
+def download_participant_results(request, ip):
     result = {}
-    if iw_ip and token and timestamp:
-        result = event_service.load_events_from_iwtm(iw_ip, token, timestamp)
-    else:
-        result['message'] = 'Error: parameters not specified'
-    return JsonResponse(result, safe=False, json_dumps_params={'indent': 4, 'ensure_ascii': False})
+    result['participant'] = ip
+    return Response(result)
 
-def compare_events(request):
-    if request.method=='POST':
-        if 'new' in request.POST.getlist('alg-type'):
-            event_service.check_tasks_first_method()
-        else:
-            event_service.check_tasks_second_method()
-    context = {}
-    context['tasks'] = event_service.tasks
-    return render(request, 'app/results.html', context)
-
-def save_template_file(file):
-    with open('app/static/upload/template.csv', 'wb+') as destination:
-        for chunk in file.chunks():
-            destination.write(chunk)
-
-def sent_date_sorting(event):
-    return datetime.datetime.strptime(event['SENT_DATE'], '%Y-%m-%d %H:%M:%S').timestamp()
+@api_view(['GET'])
+def get_participant_results(request, ip):
+    result = event_service.get_participant_result(ip)
+    return Response(result)

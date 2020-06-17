@@ -10,14 +10,45 @@ from openpyxl.utils import get_column_letter
 
 class EventService:
 
-    def __init__(self):
-        self.deltas = []
-        self.template_events = []
-        self.real_events = []
-        self.task_numbers = []
+    def __init__(self, debug_mode):
+        self.debug_mode = debug_mode
+        # todo: store in db
+        self.participant_results = {}
 
-    def load_template(self, filename):
-        self.template_events = []
+    def load_grouped_events(self, iw_ip, token, date_and_time, template_file_path, template_file):
+        self.save_template_file(template_file_path, template_file)
+        template_events = self.load_template_events(template_file_path)
+        iwtm_events = []
+        if self.debug_mode:
+            iwtm_events_file = 'app/static/sample-events.json'
+            iwtm_events = self.load_iwtm_events_from_file(iwtm_events_file)
+        else:
+            iwtm_events = self.load_events_from_iwtm()
+        iwtm_events = self.parse_iwtm_events(iwtm_events)
+        mapped_events = self.get_mapped_events_one_to_one(template_events, iwtm_events)
+        grouped_events = self.get_grouped_events(mapped_events)
+        self.save_participant_result(iw_ip, grouped_events)
+        return True
+
+    def save_participant_result(self, ip, result):
+        self.participant_results[ip] = result
+
+    def get_participant_result(self, ip):
+        result = {}
+        if ip in self.participant_results:
+            result = self.participant_results[ip]
+        return result
+    
+    def get_participant_ip_list(self):
+        return self.participant_results.keys()
+
+    def save_template_file(self, path, file):
+        with open(path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+
+    def load_template_events(self, filename):
+        template_events = []
         with open(filename, encoding='utf-8') as file:
             reader = csv.DictReader(file, delimiter=';')
             for row in reader:
@@ -31,108 +62,108 @@ class EventService:
                 event['verdict'] = row['verdict']
                 event['violation_level'] = row['violation_level']
                 event['tags'] = row['tags'].split(',')
-                if event['task_number'] not in self.task_numbers:
-                    self.task_numbers.append(event['task_number'])
-                self.template_events.append(event)
-        return self.template_events
+                template_events.append(event)
+        return template_events
     
-    def load_real(self, filename):
+    def load_iwtm_events_from_file(self, filename):
         data = []
         with open(filename, encoding='utf-8') as json_file:
             data = json.load(json_file)
-        self.real_events = data['data']
-        self.fix_real()
+        return data['data']
     
-    def fix_real(self):
-        for event in self.real_events:
-            subject = json.loads(event['PREVIEW_DATA'])['subject'].split(', ')
-            event_sender = subject[0].split(':')[1].strip()
-            event_recipient = subject[1].split(':')[1].strip()
-            event_filename = subject[2].split(':')[1].strip()
-            policies_names = []
-            if not event['policies']:
-                policies_names.append('No')
-            else:
-                for policy in event['policies']:
-                    policies_names.append(policy['DISPLAY_NAME'])
-            event['policies'] = policies_names
-            document_names = []
-            if not event['protected_documents']:
-                document_names.append('No')
-            else:
-                for doc in event['protected_documents']:
-                    document_names.append(doc['DISPLAY_NAME'])
-            event['protected_documents'] = document_names
-            event['sender'] = event_sender
-            event['recipient'] = event_recipient
-            event['filename'] = event_filename
-
-    # Почему в событии появился объект защиты, который не указан в политике?
-    # protected_documents - объекты защиты
     def load_events_from_iwtm(self, ip, token, timestamp):
-        #token = '1bs23q0mf47941ctode8'
         HTTP_HEADERS = {'X-API-Version': '1.2',
                         'X-API-CompanyId': 'GUAP',
                         'X-API-ImporterName': 'GUAP',
                         'X-API-Auth-Token': token}
-        #string_timestamp = '1588759200'
         url = 'https://' + ip + '/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&filter[date][from]=' + timestamp
         req = urllib.request.Request(url, headers=HTTP_HEADERS)
         data = []
         with urllib.request.urlopen(req, context=ssl._create_unverified_context()) as response:
             the_page = response.read()
             data = json.loads(the_page)
-        self.real_events = data['data']
-        self.fix_real()
-        return self.real_events
+        return data['data']
+    
+    def parse_iwtm_events(self, events):
+        parsed_events = []
+        for event in events:
+            parsed_event = {}
+            parsed_event['id'] = event['OBJECT_ID']
+            parsed_event['capture_date'] = event['CAPTURE_DATE']
+            subject = json.loads(event['PREVIEW_DATA'])['subject'].split(', ')
+            event_sender = subject[0].split(':')[1].strip()
+            event_recipient = subject[1].split(':')[1].strip()
+            event_filename = subject[2].split(':')[1].strip()
+            parsed_event['sender'] = event_sender
+            parsed_event['recipient'] = event_recipient
+            parsed_event['filename'] = event_filename
+            parsed_event['policies'] = self.simplify_json_array(event['policies'])
+            parsed_event['protected_documents'] = self.simplify_json_array(event['protected_documents'])
+            parsed_event['tags'] = self.simplify_json_array(event['tags'])
+            parsed_event['verdict'] = event['VERDICT']
+            parsed_event['violation_level'] = event['VIOLATION_LEVEL']
+            parsed_events.append(parsed_event)
+        return parsed_events
 
-    def find_by_id(self, filename, sender, recipient):
+    def get_mapped_events_one_to_one(self, template_events, iwtm_events):
+        mapped_events = []
+        for event in template_events:
+            iwtm_event = self.find_event_by_id(iwtm_events, event['filename'], event['sender'], event['recipient'])
+            mapped_event = iwtm_event
+            mapped_event['template_event'] = event
+            mapped_events.append(mapped_event)
+        return mapped_events
+
+    def find_event_by_id(self, events, filename, sender, recipient):
         found_event = {}
-        for event in self.real_events:
+        for event in events:
             if event['filename'] == filename and event['sender'] == sender and event['recipient'] == recipient:
                 found_event = event
                 return found_event
         return found_event
 
-    def align_real(self):
+    def simplify_json_array(self, json_array):
         result = []
-        for event in self.template_events:
-            found_event = self.find_by_id(event['filename'], event['sender'], event['recipient'])
-            found_event['task_number'] = event['task_number']
-            result.append(found_event)
-        self.real_events = result
-    
-    def align_template(template_events, real_events):
-        result = []
-        for event in template_events:
-            found_events = self.find_all_by_id(event.filename, event.sender, event.recipient)
-            result.append(event)
-            empty_event = {}
-            empty_event['filename'] = 'null'
-            for _ in found_events:
-                result.append(empty_event)
+        if not json_array:
+            result.append('No')
+        else:
+            for item in json_array:
+                result.append(item['DISPLAY_NAME'])
         return result
+    
+    def get_grouped_events(self, events):
+        task_numbers = self.get_task_numbers(events)
+        grouped_events = []
+        for number in task_numbers:
+            policy_events = {}
+            policy_events['policy_number'] = number
+            policy_events['events'] = self.get_events_by_task_number(events, number)
+            policy_events['stats'] = {}
+            grouped_events.append(policy_events)
+        return grouped_events
+    
+    def get_task_numbers(self, events):
+        task_numbers = []
+        for event in events:
+            task_number = event['template_event']['task_number']
+            if task_number not in task_numbers:
+                task_numbers.append(task_number)
+        return task_numbers
     
     def get_events_by_task_number(self, events, task_number):
         result = []
         for event in events:
-            if event['task_number'] == task_number:
+            if event['template_event']['task_number'] == task_number:
                 result.append(event)
         return result
 
-    def create_task_list(self):
-        tasks = []
-        for number in self.task_numbers:
-            task = {}
-            task_real_events = self.get_events_by_task_number(self.real_events, number)
-            task_template_events = self.get_events_by_task_number(self.template_events, number)
-            task['events'] = zip(task_real_events, task_template_events)
-            task['real_events'] = task_real_events
-            task['template_events'] = task_template_events
-            task['number'] = number
-            tasks.append(task)
-        return tasks
-
+    def get_array_difference(self, first_array, second_array):
+        diff = []
+        for item in first_array:
+            if item not in second_array:
+                diff.add(item)
+        return diff
+    
     def check_tasks_first_method(self):
         self.deltas = []
         self.align_real()

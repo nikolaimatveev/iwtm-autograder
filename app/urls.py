@@ -4,9 +4,9 @@ from . import views
 
 app_name = 'app'
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('results', views.compare_events, name='results'),
-    path('events', views.list_real_events, name='events'),
-    path('uploadTemplate', views.upload_template_events, name='upload-template'),
-    path('uploadReal', views.upload_real_events, name='upload-real')
+    path('events/', views.load_events),
+    path('events/check/', views.check_events),
+    path('participants/', views.get_participant_ip_list),
+    path('results/<ip>', views.get_participant_results),
+    path('results/<ip>/download', views.download_participant_results),
 ]
