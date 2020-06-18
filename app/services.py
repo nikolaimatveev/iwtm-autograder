@@ -14,6 +14,7 @@ class EventService:
         self.debug_mode = debug_mode
         # todo: store in db
         self.participant_results = {}
+        self.participant_infos = {}
 
     def load_grouped_events(self, iw_ip, token, date_and_time, template_file_path, template_file):
         self.save_template_file(template_file_path, template_file)
@@ -28,10 +29,24 @@ class EventService:
         mapped_events = self.get_mapped_events_one_to_one(template_events, iwtm_events)
         grouped_events = self.get_grouped_events(mapped_events)
         self.save_participant_result(iw_ip, grouped_events)
+        participant_info = {}
+        participant_info['ip'] = iw_ip
+        participant_info['isChecked'] = False
+        participant_info['check_mode'] = 'none'
+        self.save_participant_info(iw_ip, participant_info)
         return True
+
+    def save_participant_info(self, ip, participant_info):
+        self.participant_infos[ip] = participant_info
 
     def save_participant_result(self, ip, result):
         self.participant_results[ip] = result
+
+    def get_participant_info(self, ip):
+        result = {}
+        if ip in self.participant_infos:
+            result = self.participant_infos[ip]
+        return result
 
     def get_participant_result(self, ip):
         result = {}
@@ -157,6 +172,32 @@ class EventService:
                 result.append(event)
         return result
 
+    def check_events_normal_mode(self, grouped_events):
+        grouped_events_copy = grouped_events.copy()
+        for item in grouped_events:
+            policy = 'Политика ' + item['policy_number']
+            protected_document = 'Задание ' + item['policy_number']
+            wrong_policy_count = 0
+            missing_policy_count = 0
+            wrong_tag_count = 0
+            wrong_document_count = 0
+            missing_document_count = 0
+            wrong_verdict_count = 0
+            wrong_violation_level_count = 0
+            for item2 in grouped_events_copy:
+                for policy_event in item2['events']:
+                    template_event = policy_event['template_event']
+                    if policy in policy_event['policies'] and policy not in template_event['policies']:
+                        wrong_policy_count += 1
+            item['stats']['wrong_policies'] = wrong_policy_count
+            item['stats']['missing_policies'] = 0
+            item['stats']['wrong_documents'] = 0
+            item['stats']['missing_documents'] = 0
+            item['stats']['wrong_tags'] = 0
+            item['stats']['wrong_verdict'] = 0
+            item['stats']['wrong_violation_level'] = 0
+        return grouped_events
+    
     def get_array_difference(self, first_array, second_array):
         diff = []
         for item in first_array:

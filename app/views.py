@@ -25,17 +25,28 @@ def load_events(request):
                                       template_file)
     return Response({'message': 'Success'}, status=status.HTTP_201_CREATED)
 
-@api_view(['GET'])
+@api_view(['POST'])
 def check_events(request):
-    print('todo')
-    comment = Comment(email='leila@example.com', content='check events')
-    serializer = CommentSerializer(comment)
-    return Response(serializer.data)
+    check_mode = request.data['check_mode']
+    ip = request.data['ip']
+    events = event_service.get_participant_result(ip)
+    result = event_service.check_events_normal_mode(events)
+    event_service.save_participant_result(ip, result)
+    info = event_service.get_participant_info(ip)
+    info['isChecked'] = True
+    info['check_mode'] = check_mode
+    event_service.save_participant_info(ip, info)
+    return Response(result)
 
 @api_view(['GET'])
 def get_participant_ip_list(request):
     ip_list = event_service.get_participant_ip_list()
     return Response(ip_list)
+
+@api_view(['GET'])
+def get_participant_info(request, ip):
+    result = event_service.get_participant_info(ip)
+    return Response(result)
 
 @api_view(['GET'])
 def download_participant_results(request, ip):
