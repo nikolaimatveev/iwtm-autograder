@@ -58,3 +58,19 @@ def download_participant_results(request, ip):
 def get_participant_results(request, ip):
     result = event_service.get_participant_result(ip)
     return Response(result)
+
+@api_view(['GET'])
+def check_testing(request):
+    iw_ip = '211'
+    token = 'abs'
+    date_and_time = 'dasd'
+    template_file_path = 'app/static/upload/template.csv'
+    template_file = 'da'
+    event_service.load_grouped_events(iw_ip,
+                                      token,
+                                      date_and_time, 
+                                      template_file_path,
+                                      template_file)
+    events = event_service.get_participant_result(iw_ip)
+    result = event_service.check_events_normal_mode(events)
+    return Response(result)

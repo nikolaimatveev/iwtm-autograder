@@ -17,7 +17,7 @@ class EventService:
         self.participant_infos = {}
 
     def load_grouped_events(self, iw_ip, token, date_and_time, template_file_path, template_file):
-        self.save_template_file(template_file_path, template_file)
+        #self.save_template_file(template_file_path, template_file)
         template_events = self.load_template_events(template_file_path)
         iwtm_events = []
         if self.debug_mode:
@@ -173,7 +173,6 @@ class EventService:
         return result
 
     def check_events_normal_mode(self, grouped_events):
-        grouped_events_copy = grouped_events.copy()
         for item in grouped_events:
             policy = 'Политика ' + item['policy_number']
             protected_document = 'Задание ' + item['policy_number']
@@ -184,25 +183,84 @@ class EventService:
             missing_document_count = 0
             wrong_verdict_count = 0
             wrong_violation_level_count = 0
-            for item2 in grouped_events_copy:
-                for policy_event in item2['events']:
+            for any_item in grouped_events:
+                for policy_event in any_item['events']:
                     template_event = policy_event['template_event']
-                    if policy in policy_event['policies'] and policy not in template_event['policies']:
+                    
+                    if (policy in policy_event['policies'] and
+                            policy not in template_event['policies']):
                         wrong_policy_count += 1
+                        wrong_tag_count += 1
+                        wrong_verdict_count += 1
+                        wrong_violation_level_count += 1
+                    
+                    if (protected_document in policy_event['protected_documents'] and
+                            protected_document not in template_event['protected_documents']):
+                        wrong_document_count += 1
+            self.check_events_one_to_one(item)     
             item['stats']['wrong_policies'] = wrong_policy_count
             item['stats']['missing_policies'] = 0
             item['stats']['wrong_documents'] = 0
             item['stats']['missing_documents'] = 0
-            item['stats']['wrong_tags'] = 0
-            item['stats']['wrong_verdict'] = 0
-            item['stats']['wrong_violation_level'] = 0
+            item['stats']['wrong_tags'] = wrong_tag_count
+            item['stats']['wrong_verdict'] = wrong_verdict_count
+            item['stats']['wrong_violation_level'] = wrong_violation_level_count
         return grouped_events
+
+    def check_events_max_mode(self, grouped_events):
+        for item in grouped_events:
+            self.init_task_stats(item)
+            self.check_events_one_to_one(item)
+
     
+    def check_events_one_to_one(self, item):
+        for task_event in item['events']:
+            template_event = task_event['template_event']
+            failed_policies_diff = self.get_array_difference(template_event['policies'],
+                                                             task_event['policies'])
+            false_policies_diff = self.get_array_difference(task_event['policies'],
+                                                            template_event['policies'])
+            failed_documents_diff = self.get_array_difference(template_event['protected_documents'],
+                                                              task_event['protected_documents'])
+            false_documents_diff = self.get_array_difference(task_event['protected_documents'],
+                                                             template_event['protected_documents'])
+            failed_tags_diff = self.get_array_difference(template_event['tags'],
+                                                  task_event['tags'])
+            false_tags_diff = self.get_array_difference(task_event['tags'],
+                                                        template_event['tags'])
+            wrong_verdict_diff = ''
+            if task_event['verdict'] != template_event['verdict']:
+                wrong_verdict_diff = task_event['verdict']
+            
+            wrong_violation_level_diff = ''
+            if task_event['violation_level'] != template_event['violation_level']:
+                wrong_violation_level_diff = task_event['violation_level']
+            
+            task_event['diff'] = {}
+            template_event['diff'] = {}
+            task_event['diff']['policies'] = false_policies_diff
+            template_event['diff']['policies'] = failed_policies_diff
+            task_event['diff']['protected_documents'] = false_documents_diff
+            template_event['diff']['protected_documents'] = failed_documents_diff
+            task_event['diff']['tags'] = false_tags_diff
+            template_event['diff']['tags'] = failed_tags_diff
+            task_event['diff']['verdict'] = wrong_verdict_diff
+            task_event['diff']['violation_level'] = wrong_violation_level_diff
+
+    def init_task_stats(self, item):
+        item['stats']['failed_policies'] = 0
+        item['stats']['false_policies'] = 0
+        item['stats']['failed_documents'] = 0
+        item['stats']['false_documents'] = 0
+        item['stats']['wrong_tags'] = 0
+        item['stats']['wrong_verdict'] = 0
+        item['stats']['wrong_violation_level'] = 0
+
     def get_array_difference(self, first_array, second_array):
         diff = []
         for item in first_array:
             if item not in second_array:
-                diff.add(item)
+                diff.append(item)
         return diff
     
     def check_tasks_first_method(self):

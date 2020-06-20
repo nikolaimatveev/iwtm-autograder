@@ -10,4 +10,5 @@ urlpatterns = [
     path('participants/<ip>', views.get_participant_info),
     path('results/<ip>', views.get_participant_results),
     path('results/<ip>/download', views.download_participant_results),
+    path('test/', views.check_testing)
 ]
