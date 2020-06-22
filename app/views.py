@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import requests
-from urllib.parse import unquote
 
 event_service = EventService(debug_mode=True)
 
@@ -68,6 +67,7 @@ def check_testing(request):
     date_and_time = 'dasd'
     template_file_path = 'app/static/upload/template.csv'
     template_file = 'da'
+    
     event_service.load_grouped_events(iw_ip,
                                       token,
                                       date_and_time, 
@@ -75,27 +75,19 @@ def check_testing(request):
                                       template_file)
     events = event_service.get_participant_result(iw_ip)
     result = event_service.check_events_normal_mode(events)
+    
     return Response(result)
 
 @api_view(['GET'])
 def login_to_iwtm(request):
-    data = {}
-    data['username'] = 'officer'
-    data['crypted_password'] = 'xxXX1234'
-    resp = requests.get('https://10.228.6.236:17443/api/user/check', verify=False)
-    token =  unquote(resp.cookies['YII_CSRF_TOKEN'])
-    print(token)
-    headers = {}
-    headers['x-csrf-token'] = token 
+
+    auth_cookies = event_service.login_to_iwtm('10.228.6.236:17443', 'officer', 'xxXX1234')
+
+    response = requests.get('https://10.228.6.236:17443/api/protectedDocument?start=0&limit=10&filter%5Bcatalog.CATALOG_ID%5D=EF92807740E8698E38842817B3B9584700000000&sort%5BDISPLAY_NAME%5D=ASC&_=1592817531960',
+                            cookies=auth_cookies, verify=False)
     
-    response = requests.get('https://10.228.6.236:17443/api/salt', 
-                            cookies=resp.cookies, verify=False)
+    response = requests.get('https://10.228.6.236:17443/api/tag',
+                            cookies=auth_cookies, verify=False)
     
-    response_json = response.json()
-    salt = response_json['data']['salt']
-    print(salt)
-    
-    response = requests.post('https://10.228.6.236:17443/api/login',
-                             json=data, cookies=resp.cookies, headers=headers, verify=False)
-    #print(response)
     return Response(response.json())
+

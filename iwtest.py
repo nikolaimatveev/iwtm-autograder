@@ -7,6 +7,7 @@ import ssl
 from openpyxl import Workbook
 from openpyxl.styles.borders import Border, Side
 
+'''
 HTTP_HEADERS = {'X-API-Version': '1.2',
                 'X-API-CompanyId': 'GUAP',
                 'X-API-ImporterName': 'GUAP',
@@ -37,3 +38,4 @@ sheet.cell(4, 4).border = thin_border
 sheet.cell(4, 5).value = 'blal'
 
 book.save("sample.xlsx")
+'''
