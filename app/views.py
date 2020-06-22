@@ -62,7 +62,7 @@ def get_participant_results(request, ip):
 
 @api_view(['GET'])
 def check_testing(request):
-    iw_ip = '211'
+    iw_ip = '192.168.108.102'
     token = 'abs'
     date_and_time = 'dasd'
     template_file_path = 'app/static/upload/template.csv'
@@ -75,7 +75,9 @@ def check_testing(request):
                                       template_file)
     events = event_service.get_participant_result(iw_ip)
     result = event_service.check_events_normal_mode(events)
-    
+    path = 'app/static/'
+    filename = path + 'result-' + iw_ip.replace('.', '-') + '.xlsx'
+    event_service.export_participant_result(result, filename)
     return Response(result)
 
 @api_view(['GET'])

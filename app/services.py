@@ -313,7 +313,7 @@ class EventService:
         if iwtm_event['diff']['violation_level']:
             item['stats']['wrong_violation_level'] += 1
     
-    def save_results(self):
+    def export_participant_result(self, result, filename):
         start_x = 3
         start_y = 3
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), 
@@ -323,10 +323,10 @@ class EventService:
         sheet = book.active
         x_idx = start_x
         y_idx = start_y
-        column_headers = ['Ложные политики', 'Отсутствующие политики', 
-                        'Ложные объекты', 'Отсутствующие объекты', 
-                        'Ложные теги', 'Ложные вердикты',
-                        'Ложные уровни нарушения', 'Итого недочетов']
+        column_headers = ['Ложные политики', 'Несработавшие политики', 
+                        'Ложные объекты', 'Несработавшие объекты', 
+                        'Ложные теги', 'Неправильные теги', 'Неправильные вердикты',
+                        'Неправильные уровни нарушения', 'Итого недочетов']
         
         sheet.cell(x_idx, y_idx).border = thin_border
         sheet.column_dimensions[get_column_letter(y_idx)].width = 15
@@ -342,41 +342,50 @@ class EventService:
             sheet.column_dimensions[get_column_letter(y_idx)].width = 15
             y_idx += 1
         
-        for task in self.tasks:
+        for item in result:
             x_idx += 1
             y_idx = start_y
-            sheet.cell(x_idx, y_idx).value = 'Политика №' + task['number']
+            policy = 'Политика №' + item['policy_number']
+            task = 'Задание №' + item['policy_number']
+            total_errors = (item['stats']['false_policies'] + item['stats']['failed_policies'] +
+                            item['stats']['false_documents'] + item['stats']['failed_documents'] +
+                            item['stats']['false_tags'] + item['stats']['wrong_tags'] +
+                            item['stats']['wrong_verdict'] + item['stats']['wrong_violation_level'])
+            sheet.cell(x_idx, y_idx).value = policy
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = 'Задание №' + task['number']
+            sheet.cell(x_idx, y_idx).value = task
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['wrong_policies']
+            sheet.cell(x_idx, y_idx).value = item['stats']['false_policies']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['missing_policies']
+            sheet.cell(x_idx, y_idx).value = item['stats']['failed_policies']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['wrong_documents']
+            sheet.cell(x_idx, y_idx).value = item['stats']['false_documents']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['missing_documents']
+            sheet.cell(x_idx, y_idx).value = item['stats']['failed_documents']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['wrong_tags']
+            sheet.cell(x_idx, y_idx).value = item['stats']['false_tags']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['wrong_verdict']
+            sheet.cell(x_idx, y_idx).value = item['stats']['wrong_tags']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['wrong_violation_level']
+            sheet.cell(x_idx, y_idx).value = item['stats']['wrong_verdict']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['total_errors']
+            sheet.cell(x_idx, y_idx).value = item['stats']['wrong_violation_level']
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = total_errors
             sheet.cell(x_idx, y_idx).border = thin_border
         
         
-        column_headers_doc = ['Ложные объекты', 'Отсутствующие объекты', 'Итого недочетов']
+        column_headers_doc = ['Ложные объекты', 'Несработавшие объекты', 'Итого недочетов']
         y_idx = start_y
         x_idx += 3
         sheet.cell(x_idx, y_idx).border = thin_border
@@ -385,6 +394,7 @@ class EventService:
         sheet.cell(x_idx, y_idx).border = thin_border
         sheet.column_dimensions[get_column_letter(y_idx)].width = 15
         y_idx += 1
+        
         for header in column_headers_doc:
             sheet.cell(x_idx, y_idx).value = header
             sheet.cell(x_idx, y_idx).border = thin_border
@@ -392,24 +402,24 @@ class EventService:
             sheet.column_dimensions[get_column_letter(y_idx)].width = 15
             y_idx += 1
 
-        for task in self.tasks:
-            if task['number'] == '3':
-                continue
+        for item in result:
             x_idx += 1
             y_idx = start_y
-            sheet.cell(x_idx, y_idx).value = 'Объект защиты №' + task['number']
+            protected_document = 'Объект защиты №' + item['policy_number']
+            task = 'Задание №' + item['policy_number']
+            total_errors = item['stats']['false_documents'] + item['stats']['failed_documents']
+            sheet.cell(x_idx, y_idx).value = protected_document
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = 'Задание №' + task['number']
+            sheet.cell(x_idx, y_idx).value = task
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['wrong_documents']
+            sheet.cell(x_idx, y_idx).value = item['stats']['false_documents']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['missing_documents']
+            sheet.cell(x_idx, y_idx).value = item['stats']['failed_documents']
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task['doc_errors']
+            sheet.cell(x_idx, y_idx).value = total_errors
             sheet.cell(x_idx, y_idx).border = thin_border
-        
-        book.save("app/static/results.xlsx")
+        book.save(filename)
