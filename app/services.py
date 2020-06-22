@@ -20,7 +20,7 @@ class EventService:
         self.participant_infos = {}
 
     def load_grouped_events(self, iw_ip, token, date_and_time, template_file_path, template_file):
-        #self.save_template_file(template_file_path, template_file)
+        self.save_template_file(template_file_path, template_file)
         template_events = self.load_template_events(template_file_path)
         iwtm_events = []
         if self.debug_mode:
@@ -98,6 +98,16 @@ class EventService:
             data = json.load(json_file)
         return data['data']
     
+    def get_token_from_iwtm(self, iwtm_ip, auth_cookies):
+        response = requests.get('https://' + iwtm_ip + '/api/plugin?merge_with[]=tokens',
+                            cookies=auth_cookies, verify=False)
+        data = response.json()
+        token = ''
+        for plugin in data['data']:
+            if plugin['DISPLAY_NAME'] == 'DataExport plugin':
+                token = plugin['tokens'][0]['USERNAME']
+        return token
+
     def load_events_from_iwtm(self, ip, token, timestamp):
         HTTP_HEADERS = {'X-API-Version': '1.2',
                         'X-API-CompanyId': 'GUAP',

@@ -2,6 +2,9 @@ from app.models import Event, Comment
 from app.serializers import CommentSerializer
 from app.services import EventService
 
+from django.http import HttpResponse
+from wsgiref.util import FileWrapper
+
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -50,13 +53,13 @@ def get_participant_info(request, ip):
     return Response(result)
 
 @api_view(['GET'])
-def download_participant_results(request, ip):
+def download_participant_result(request, ip):
     result = {}
     result['participant'] = ip
     return Response(result)
 
 @api_view(['GET'])
-def get_participant_results(request, ip):
+def get_participant_result(request, ip):
     result = event_service.get_participant_result(ip)
     return Response(result)
 
@@ -83,13 +86,17 @@ def check_testing(request):
 @api_view(['GET'])
 def login_to_iwtm(request):
 
-    auth_cookies = event_service.login_to_iwtm('10.228.6.236:17443', 'officer', 'xxXX1234')
+    iwtm_ip = '10.228.6.236:17443'
 
-    response = requests.get('https://10.228.6.236:17443/api/protectedDocument?start=0&limit=10&filter%5Bcatalog.CATALOG_ID%5D=EF92807740E8698E38842817B3B9584700000000&sort%5BDISPLAY_NAME%5D=ASC&_=1592817531960',
-                            cookies=auth_cookies, verify=False)
+    auth_cookies = event_service.login_to_iwtm(iwtm_ip, 'officer', 'xxXX1234')
+
+    #response = requests.get('https://10.228.6.236:17443/api/protectedDocument?start=0&limit=10&filter%5Bcatalog.CATALOG_ID%5D=EF92807740E8698E38842817B3B9584700000000&sort%5BDISPLAY_NAME%5D=ASC&_=1592817531960',
+    #                        cookies=auth_cookies, verify=False)
     
-    response = requests.get('https://10.228.6.236:17443/api/tag',
-                            cookies=auth_cookies, verify=False)
+    #response = requests.get('https://10.228.6.236:17443/api/object?start=0&limit=1000&merge_with[]=objectContentFilenames&&sort[CAPTURE_DATE]=desc&filter[QUERY_ID]=1&_=1589364000',
+    #                        cookies=auth_cookies, verify=False)
     
-    return Response(response.json())
+    token = event_service.get_token_from_iwtm(iwtm_ip, auth_cookies)
+
+    return Response({'token': token})
 

@@ -8,8 +8,8 @@ urlpatterns = [
     path('events/check', views.check_events),
     path('participants/', views.get_participant_ip_list),
     path('participants/<ip>', views.get_participant_info),
-    path('results/<ip>', views.get_participant_results),
-    path('results/<ip>/download', views.download_participant_results),
+    path('results/<ip>', views.get_participant_result),
+    path('results/<ip>/download', views.download_participant_result),
     path('test/', views.check_testing),
     path('login/', views.login_to_iwtm)
 ]
