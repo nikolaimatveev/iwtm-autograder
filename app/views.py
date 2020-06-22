@@ -96,7 +96,8 @@ def login_to_iwtm(request):
     #response = requests.get('https://10.228.6.236:17443/api/object?start=0&limit=1000&merge_with[]=objectContentFilenames&&sort[CAPTURE_DATE]=desc&filter[QUERY_ID]=1&_=1589364000',
     #                        cookies=auth_cookies, verify=False)
     
-    token = event_service.get_token_from_iwtm(iwtm_ip, auth_cookies)
-
-    return Response({'token': token})
+    #token = event_service.get_token_from_iwtm(iwtm_ip, auth_cookies)
+    catalog_id = 'EF92807740E8698E38842817B3B9584700000000'
+    technology_types = event_service.get_object_types(iwtm_ip, auth_cookies, catalog_id)
+    return Response({'types': technology_types})
 

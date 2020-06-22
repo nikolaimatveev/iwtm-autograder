@@ -108,6 +108,23 @@ class EventService:
                 token = plugin['tokens'][0]['USERNAME']
         return token
 
+    def get_object_types(self, iwtm_ip, auth_cookies, catalog_id):
+        API_ROOT = 'https://' + iwtm_ip + '/api/'
+        url = API_ROOT + 'protectedDocument?start=0&limit=50&filter[catalog.CATALOG_ID]=' + catalog_id
+        
+        url_alt = API_ROOT + 'protectedDocument?start=0&limit=100&filter%5Bcatalog.CATALOG_ID%5D=EC6965EA7D1B0EE750E47DF2040BF4E800000000&filter%5BDOCUMENT_ID%5D=4F61ECD2791CC87FA4907F21C4FEAAC000000000'
+        
+        response = requests.get(url_alt, cookies=auth_cookies, verify=False)
+        data = response.json()['data'][0]
+
+        technology_types = set()
+        
+        for entry in data['entries_pool']:
+            technology_type = entry['content']['TYPE']
+            technology_types.add(technology_type)
+
+        return technology_types
+
     def load_events_from_iwtm(self, ip, token, timestamp):
         HTTP_HEADERS = {'X-API-Version': '1.2',
                         'X-API-CompanyId': 'GUAP',
