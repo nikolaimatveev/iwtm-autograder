@@ -10,6 +10,8 @@ from openpyxl.utils import get_column_letter
 import blowfish
 import base64
 import requests
+from datetime import datetime, timezone
+from time import gmtime, strftime
 from urllib.parse import unquote
 
 class EventService:
@@ -18,6 +20,7 @@ class EventService:
         # todo: store in db
         self.participant_results = {}
         self.participants = {}
+        self.auth_cookies = []
 
     def load_grouped_events(self, iwtm_ip, iwtm_login, iwtm_password, 
                             date_and_time, template_file_path):
@@ -27,12 +30,25 @@ class EventService:
             iwtm_events_file = 'app/static/sample-events.json'
             iwtm_events = self.load_iwtm_events_from_file(iwtm_events_file)
         else:
-            iwtm_events = self.load_events_from_iwtm()
+            if not self.isAuthCookiesValid(iwtm_ip, self.auth_cookies):
+                self.auth_cookies = self.login_to_iwtm(iwtm_ip, iwtm_login, iwtm_password)
+            token = self.get_token_from_iwtm(iwtm_ip, self.auth_cookies)
+            iwtm_events = self.load_events_from_iwtm(iwtm_ip, token, date_and_time)
+        
         iwtm_events = self.parse_iwtm_events(iwtm_events)
         mapped_events = self.get_mapped_events_one_to_one(template_events, iwtm_events)
         grouped_events = self.get_grouped_events(mapped_events)
         self.save_participant_result(iwtm_ip, grouped_events)
         return True
+
+    def isAuthCookiesValid(self, iwtm_ip, auth_cookies):
+        url = 'https://' + iwtm_ip + '/api/user/check'
+        response = requests.get(url, cookies=auth_cookies, verify=False)
+        data = response.json()
+        if response.status_code == 200 and data['state'] == 'data':
+            return True
+        else:
+            return False
 
     def save_participant(self, ip, participant_info):
         self.participants[ip] = participant_info
@@ -120,17 +136,31 @@ class EventService:
 
         return technology_types
 
-    def load_events_from_iwtm(self, ip, token, timestamp):
-        HTTP_HEADERS = {'X-API-Version': '1.2',
-                        'X-API-CompanyId': 'GUAP',
-                        'X-API-ImporterName': 'GUAP',
-                        'X-API-Auth-Token': token}
-        url = 'https://' + ip + '/xapi/event?with[protected_documents]&with[policies]&with[protected_catalogs]&with[tags]&with[senders]&with[recipients]&with[recipients_keys]&with[senders_keys]&start=0&filter[date][from]=' + timestamp
-        req = urllib.request.Request(url, headers=HTTP_HEADERS)
-        data = []
-        with urllib.request.urlopen(req, context=ssl._create_unverified_context()) as response:
-            the_page = response.read()
-            data = json.loads(the_page)
+    def convert_datetime_to_timestamp(self, date_and_time):
+        attr = date_and_time.split('-')
+        dt = datetime(year=int(attr[0]), month=int(attr[1]), 
+                      day=int(attr[2]), hour=int(attr[3]), minute=int(attr[4]))
+        timestamp = dt.replace(tzinfo=timezone.utc).timestamp()
+        return timestamp
+
+    def load_events_from_iwtm(self, iwtm_ip, token, date_and_time):
+        url = 'https://' + iwtm_ip + '/xapi/event'
+        headers = {}
+        headers['X-API-Version'] = '1.2'
+        headers['X-API-CompanyId'] = 'GUAP'
+        headers['X-API-ImporterName'] = 'GUAP'
+        headers['X-API-Auth-Token'] = token
+        params = {}
+        params['start'] = 0
+        timestamp = self.convert_datetime_to_timestamp(date_and_time)
+        params['filter[date][from]'] = timestamp
+        params['with[]'] = [
+            'protected_documents', 'policies', 'protected_catalogs',
+            'tags', 'senders', 'recipients',
+            'senders_keys', 'recipients_keys'
+            ]
+        response = requests.get(url, headers=headers, params=params, verify=False)
+        data = response.json()
         return data['data']
 
     def login_to_iwtm(self, iwtm_ip, username, password):    

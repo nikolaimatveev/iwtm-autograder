@@ -13,7 +13,7 @@ import os
 import io
 import datetime
 
-event_service = EventService(debug_mode=True)
+event_service = EventService(debug_mode=False)
 
 @api_view(['POST'])
 def load_events(request):
@@ -29,8 +29,8 @@ def load_events(request):
             not iwtm_ip or not iwtm_login or not iwtm_password or
             not date_and_time or not template_file):
         return Response({'error': 'All fields is required'}, status=status.HTTP_400_BAD_REQUEST)
-    if event_service.get_participant_by_ip(iwtm_ip):
-        return Response({'error': 'Competitor already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    #if event_service.get_participant_by_ip(iwtm_ip):
+    #    return Response({'error': 'Competitor already exists'}, status=status.HTTP_400_BAD_REQUEST)
     template_file_path = 'app/static/upload/' + template_file.name
     print(iwtm_ip, iwtm_login, date_and_time, template_file)
     event_service.save_template_file(template_file_path, template_file)
@@ -101,13 +101,17 @@ def get_participant_result(request, ip):
 
 @api_view(['GET'])
 def check_testing(request):
-    iwtm_ip = '192.168.108.102'
-    iwtm_login = 'abs'
-    iwtm_password = 'aaa'
-    date_and_time = 'dasd'
-    template_file_path = 'app/static/upload/template.csv'
-    template_file = 'da'
-    
+    iwtm_ip = '10.228.6.236:17443'
+    iwtm_login = 'officer'
+    iwtm_password = 'xxXX1234'
+    date_and_time = '2020-06-24-18-45'
+    auth_cookies = {}
+    if not event_service.isAuthCookiesValid(iwtm_ip, auth_cookies):
+        auth_cookies = event_service.login_to_iwtm(iwtm_ip, iwtm_login, iwtm_password)
+    token = event_service.get_token_from_iwtm(iwtm_ip, auth_cookies)
+    iwtm_events = event_service.load_events_from_iwtm(iwtm_ip, token, date_and_time)
+    return Response(iwtm_events)
+    '''
     event_service.load_grouped_events(iwtm_ip,
                                       iwtm_login,
                                       iwtm_password,
@@ -120,6 +124,7 @@ def check_testing(request):
     filename = path + 'result-' + iwtm_ip.replace('.', '-') + '.xlsx'
     #event_service.export_participant_result(result, filename)
     return Response(result)
+    '''
 
 @api_view(['GET'])
 def login_to_iwtm(request):
