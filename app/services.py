@@ -161,6 +161,8 @@ class EventService:
             ]
         response = requests.get(url, headers=headers, params=params, verify=False)
         data = response.json()
+        if data['meta']['totalCount'] == 0:
+            raise RuntimeError('No events found for the specified time period')
         return data['data']
 
     def login_to_iwtm(self, iwtm_ip, username, password):    
