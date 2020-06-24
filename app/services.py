@@ -17,10 +17,10 @@ class EventService:
         self.debug_mode = debug_mode
         # todo: store in db
         self.participant_results = {}
-        self.participant_infos = {}
+        self.participants = {}
 
-    def load_grouped_events(self, iw_ip, token, date_and_time, template_file_path, template_file):
-        self.save_template_file(template_file_path, template_file)
+    def load_grouped_events(self, iwtm_ip, iwtm_login, iwtm_password, 
+                            date_and_time, template_file_path):
         template_events = self.load_template_events(template_file_path)
         iwtm_events = []
         if self.debug_mode:
@@ -31,24 +31,22 @@ class EventService:
         iwtm_events = self.parse_iwtm_events(iwtm_events)
         mapped_events = self.get_mapped_events_one_to_one(template_events, iwtm_events)
         grouped_events = self.get_grouped_events(mapped_events)
-        self.save_participant_result(iw_ip, grouped_events)
-        participant_info = {}
-        participant_info['ip'] = iw_ip
-        participant_info['isChecked'] = False
-        participant_info['check_mode'] = 'none'
-        self.save_participant_info(iw_ip, participant_info)
+        self.save_participant_result(iwtm_ip, grouped_events)
         return True
 
-    def save_participant_info(self, ip, participant_info):
-        self.participant_infos[ip] = participant_info
+    def save_participant(self, ip, participant_info):
+        self.participants[ip] = participant_info
 
     def save_participant_result(self, ip, result):
         self.participant_results[ip] = result
 
-    def get_participant_info(self, ip):
+    def get_participants(self):
+        return self.participants.values()
+
+    def get_participant_by_ip(self, ip):
         result = {}
-        if ip in self.participant_infos:
-            result = self.participant_infos[ip]
+        if ip in self.participants:
+            result = self.participants[ip]
         return result
 
     def get_participant_result(self, ip):
@@ -57,9 +55,6 @@ class EventService:
             result = self.participant_results[ip]
         return result
     
-    def get_participant_ip_list(self):
-        return self.participant_results.keys()
-
     def save_template_file(self, path, file):
         with open(path, 'wb+') as destination:
             for chunk in file.chunks():

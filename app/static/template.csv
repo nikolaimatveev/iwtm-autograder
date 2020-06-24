@@ -1,34 +1,34 @@
 task_number;filename;sender;recipient;policies;protected_documents;verdict;violation_level;tags
-3;report.jpg;Tenders;External;Политика 3;No;Allowed;Low;No
-4;nepravilno.rtf;Sales;External;No;No;Allowed;No;No
+3;report.jpg;Tenders;External;Политика 3;;Allowed;Low;
+4;nepravilno.rtf;Sales;External;;;Allowed;No;
 4;Wordlskilz.rtf;Sales;External;Политика 4;Задание 4;Allowed;Medium;Политика 4
 5;dogovor.doc;IT;External;Политика 5.1;Задание 5.1;Allowed;Low;Политика 5
 5;dogovor_direktor.doc;IT;External;Политика 5.1,Политика 5.2;Задание 5.1,Задание 5.2;Allowed;Medium;Политика 5
 5;dogovor_pechat.pdf;IT;External;Политика 5.1,Политика 5.2,Политика 5.3;Задание 5.1,Задание 5.2,Задание 5.3;Forbidden;High;Политика 5
-6;anketa.docx;Sales;External;No;No;Allowed;No;No
+6;anketa.docx;Sales;External;;;Allowed;No;
 6;anketa_pechat.pdf;Sales;External;Политика 6;Задание 5.1;Forbidden;Medium;Политика 6
 7;promoall.docx;Security;External;Политика 4,Политика 7;Задание 7;Forbidden;Medium;Политика 4,Политика 7
 7;promotwo.docx;Security;External;Политика 4,Политика 7;Задание 7;Forbidden;Medium;Политика 4,Политика 7
-7;promoall.docx;Sales;External;No;Задание 7;Allowed;No;No
-7;promotwo.docx;Sales;External;No;Задание 7;Allowed;No;No
+7;promoall.docx;Sales;External;;Задание 7;Allowed;No;
+7;promotwo.docx;Sales;External;;Задание 7;Allowed;No;
 8;catoo.jpg;IT;External;Политика 8;Задание 8;Forbidden;Low;Политика 8
-8;catoo_reduced.jpg;IT;External;No;No;Allowed;No;No
+8;catoo_reduced.jpg;IT;External;;;Allowed;No;
 8;catoo.jpg;IT;Security;Политика 8;Задание 8;Forbidden;Low;Политика 8
-8;catoo_reduced.jpg;IT;Security;No;No;Allowed;No;No
+8;catoo_reduced.jpg;IT;Security;;;Allowed;No;
 9;evil_routes.rtf;Sales;IT;Политика 9;Задание 9;Allowed;Medium;Политика 9
 9;routes.rtf;Sales;IT;Политика 9;Задание 9;Allowed;Medium;Политика 9
-9;evil_routes.rtf;Accounting;Sales;No;Задание 9;Allowed;No;No
-9;routes.rtf;Accounting;Sales;No;Задание 9;Allowed;No;No
+9;evil_routes.rtf;Accounting;Sales;;Задание 9;Allowed;No;
+9;routes.rtf;Accounting;Sales;;Задание 9;Allowed;No;
 10;candy.rtf;Accounting;Sales;Политика 10;Задание 10;Allowed;Medium;Политика 10
 10;candy.rtf;IT;Security;Политика 10;Задание 10;Allowed;Medium;Политика 10
 11;taxi.rtf;IT;External;Политика 11;Задание 11;Allowed;Medium;Политика 11
 12;dbfull.csv;IT;External;Политика 12;Задание 12;Allowed;Medium;Политика 12
-12;dbsmall.csv;IT;External;Политика 12;No;Allowed;No;No
-12;dbfull.csv;Sales;External;Политика 12;Задание 12;Allowed;No;No
-12;dbsmall.csv;Sales;External;Политика 12;No;Allowed;No;No
+12;dbsmall.csv;IT;External;Политика 12;;Allowed;No;
+12;dbfull.csv;Sales;External;Политика 12;Задание 12;Allowed;No;
+12;dbsmall.csv;Sales;External;Политика 12;;Allowed;No;
 13;email.docx;IT;External;Политика 13;Задание 13;Allowed;Medium;Политика 13
-13;ne-email.docx;IT;External;No;No;Allowed;No;No
+13;ne-email.docx;IT;External;;;Allowed;No;
 14;konfidencialno.rtf;IT;External;Политика 14;Задание 14;Forbidden;High;Политика 14
 14;strogo_konfidencialno.pdf;IT;External;Политика 14;Задание 14;Forbidden;High;Политика 14
-14;strogo_konfidencialno_m.rtf;IT;External;No;No;Allowed;No;No
-15;win1.zip;Accounting;External;Политика 15;No;Forbidden;Low;Политика 15
+14;strogo_konfidencialno_m.rtf;IT;External;;;Allowed;No;
+15;win1.zip;Accounting;External;Политика 15;;Forbidden;Low;Политика 15

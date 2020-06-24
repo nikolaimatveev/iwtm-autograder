@@ -2,31 +2,54 @@ from app.models import Event, Comment
 from app.serializers import CommentSerializer
 from app.services import EventService
 
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 from wsgiref.util import FileWrapper
 
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import requests
+import os
+import io
+import datetime
 
 event_service = EventService(debug_mode=True)
 
 @api_view(['POST'])
 def load_events(request):
     #TODO: validate input params
-    iw_ip = request.POST.get('ip')
-    token = request.POST.get('token')
-    date_and_time = request.POST.get('date-time')
-    #check_mode = request.POST.get('check-mode')
-    template_file = request.FILES['template-file']
+    competitor_number = request.POST.get('competitor_number')
+    competitor_last_name = request.POST.get('competitor_last_name')
+    iwtm_ip = request.POST.get('iwtm_ip')
+    iwtm_login = request.POST.get('iwtm_login')
+    iwtm_password = request.POST.get('iwtm_password')
+    date_and_time = request.POST.get('date_and_time')
+    template_file = request.FILES.get('template_file')
+    if (not competitor_number or not competitor_last_name or
+            not iwtm_ip or not iwtm_login or not iwtm_password or
+            not date_and_time or not template_file):
+        return Response({'error': 'All fields is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if event_service.get_participant_by_ip(iwtm_ip):
+        return Response({'error': 'Competitor already exists'}, status=status.HTTP_400_BAD_REQUEST)
     template_file_path = 'app/static/upload/' + template_file.name
-    print(iw_ip, token, date_and_time, template_file)
-    event_service.load_grouped_events(iw_ip,
-                                      token,
-                                      date_and_time, 
-                                      template_file_path,
-                                      template_file)
+    print(iwtm_ip, iwtm_login, date_and_time, template_file)
+    event_service.save_template_file(template_file_path, template_file)
+    try:
+        event_service.load_grouped_events(iwtm_ip,
+                                        iwtm_login,
+                                        iwtm_password,
+                                        date_and_time, 
+                                        template_file_path)
+    except RuntimeError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    participant = {}
+    participant['ip'] = iwtm_ip
+    participant['number'] = competitor_number
+    participant['last_name'] = competitor_last_name
+    participant['isChecked'] = False
+    participant['check_mode'] = 'none'
+    event_service.save_participant(iwtm_ip, participant)
     return Response({'message': 'Success'}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
@@ -34,29 +57,42 @@ def check_events(request):
     check_mode = request.data['check_mode']
     ip = request.data['ip']
     events = event_service.get_participant_result(ip)
-    result = event_service.check_events_normal_mode(events)
+    result = []
+    if check_mode == 'normal':
+        print('normal mode')
+        result = event_service.check_events_normal_mode(events)
+    else:
+        print('max mode')
+        result = event_service.check_events_max_mode(events)
+
     event_service.save_participant_result(ip, result)
-    info = event_service.get_participant_info(ip)
-    info['isChecked'] = True
-    info['check_mode'] = check_mode
-    event_service.save_participant_info(ip, info)
+    
+    participant = event_service.get_participant_by_ip(ip)
+    participant['isChecked'] = True
+    participant['check_mode'] = check_mode
+    event_service.save_participant(ip, participant)
     return Response(result)
 
 @api_view(['GET'])
-def get_participant_ip_list(request):
-    ip_list = event_service.get_participant_ip_list()
-    return Response(ip_list)
+def get_participants(request):
+    participants = event_service.get_participants()
+    return Response(participants)
 
 @api_view(['GET'])
-def get_participant_info(request, ip):
-    result = event_service.get_participant_info(ip)
+def get_participant(request, ip):
+    result = event_service.get_participant_by_ip(ip)
     return Response(result)
 
 @api_view(['GET'])
 def download_participant_result(request, ip):
-    result = {}
-    result['participant'] = ip
-    return Response(result)
+    path = 'app/static/'
+    filename = 'result-' + ip.replace('.', '-') + '.xlsx'
+    result = event_service.get_participant_result(ip)
+    event_service.export_participant_result(result, path + filename)
+    result_file = io.open(path + filename, 'rb')
+    response = HttpResponse(result_file, content_type='application/**')
+    response['Content-Disposition'] = 'attachment; filename=' + filename
+    return response
 
 @api_view(['GET'])
 def get_participant_result(request, ip):
@@ -65,22 +101,24 @@ def get_participant_result(request, ip):
 
 @api_view(['GET'])
 def check_testing(request):
-    iw_ip = '192.168.108.102'
-    token = 'abs'
+    iwtm_ip = '192.168.108.102'
+    iwtm_login = 'abs'
+    iwtm_password = 'aaa'
     date_and_time = 'dasd'
     template_file_path = 'app/static/upload/template.csv'
     template_file = 'da'
     
-    event_service.load_grouped_events(iw_ip,
-                                      token,
+    event_service.load_grouped_events(iwtm_ip,
+                                      iwtm_login,
+                                      iwtm_password,
                                       date_and_time, 
                                       template_file_path,
                                       template_file)
-    events = event_service.get_participant_result(iw_ip)
+    events = event_service.get_participant_result(iwtm_ip)
     result = event_service.check_events_normal_mode(events)
     path = 'app/static/'
-    filename = path + 'result-' + iw_ip.replace('.', '-') + '.xlsx'
-    event_service.export_participant_result(result, filename)
+    filename = path + 'result-' + iwtm_ip.replace('.', '-') + '.xlsx'
+    #event_service.export_participant_result(result, filename)
     return Response(result)
 
 @api_view(['GET'])
