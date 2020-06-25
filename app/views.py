@@ -35,11 +35,11 @@ def load_events(request):
     print(iwtm_ip, iwtm_login, date_and_time, template_file)
     event_service.save_template_file(template_file_path, template_file)
     try:
-        event_service.load_grouped_events(iwtm_ip,
-                                        iwtm_login,
-                                        iwtm_password,
-                                        date_and_time, 
-                                        template_file_path)
+        event_service.load_events(iwtm_ip,
+                                    iwtm_login,
+                                    iwtm_password,
+                                    date_and_time, 
+                                    template_file_path)
     except RuntimeError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -101,30 +101,27 @@ def get_participant_result(request, ip):
 
 @api_view(['GET'])
 def check_testing(request):
+    filename = 'app/static/template_events.xlsx'
+    iwtm_ip = 'ffs'
+    iwtm_login = 'ffds'
+    iwtm_password = 'fff'
+    date_and_time = 'fdfd'
     iwtm_ip = '10.228.6.236:17443'
-    iwtm_login = 'officer'
-    iwtm_password = 'xxXX1234'
-    date_and_time = '2020-06-24-18-45'
-    auth_cookies = {}
-    if not event_service.isAuthCookiesValid(iwtm_ip, auth_cookies):
-        auth_cookies = event_service.login_to_iwtm(iwtm_ip, iwtm_login, iwtm_password)
-    token = event_service.get_token_from_iwtm(iwtm_ip, auth_cookies)
-    iwtm_events = event_service.load_events_from_iwtm(iwtm_ip, token, date_and_time)
-    return Response(iwtm_events)
-    '''
-    event_service.load_grouped_events(iwtm_ip,
-                                      iwtm_login,
-                                      iwtm_password,
-                                      date_and_time, 
-                                      template_file_path,
-                                      template_file)
-    events = event_service.get_participant_result(iwtm_ip)
-    result = event_service.check_events_normal_mode(events)
-    path = 'app/static/'
-    filename = path + 'result-' + iwtm_ip.replace('.', '-') + '.xlsx'
+    auth_cookies = event_service.login_to_iwtm(iwtm_ip, 'officer', 'xxXX1234')
+
+    #event_service.load_events(iwtm_ip,
+    #                                  iwtm_login,
+    #                                  iwtm_password,
+    #                                  date_and_time, 
+    #                                  filename)
+    #events = event_service.get_participant_result(iwtm_ip)
+    #return Response(events)
+    #result = event_service.check_events_normal_mode(events)
+    #path = 'app/static/'
+    #filename = path + 'result-' + iwtm_ip.replace('.', '-') + '.xlsx'
     #event_service.export_participant_result(result, filename)
-    return Response(result)
-    '''
+    #return Response(result)
+    
 
 @api_view(['GET'])
 def login_to_iwtm(request):
