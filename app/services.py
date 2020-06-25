@@ -38,7 +38,8 @@ class EventService:
         
         iwtm_events = self.parse_iwtm_events(iwtm_events, iwtm_ip, self.auth_cookies)
         mapped_events = self.map_events(template_events, iwtm_events)
-        #self.set_object_types(mapped_events)
+        protected_objects = self.get_protected_objects(iwtm_ip, self.auth_cookies)
+        self.set_object_technologies(mapped_events, protected_objects)
         self.save_participant_result(iwtm_ip, mapped_events)
         return True
 
@@ -138,23 +139,6 @@ class EventService:
                 token = plugin['tokens'][0]['USERNAME']
         return token
 
-    def get_object_technologies(self, iwtm_ip, auth_cookies, object_id, catalog_id):
-        API_ROOT = 'https://' + iwtm_ip + '/api/'
-        url = API_ROOT + 'protectedDocument?start=0&limit=50&filter[catalog.CATALOG_ID]=' + catalog_id
-        
-        url_alt = API_ROOT + 'protectedDocument?start=0&limit=100&filter%5Bcatalog.CATALOG_ID%5D=EC6965EA7D1B0EE750E47DF2040BF4E800000000&filter%5BDOCUMENT_ID%5D=4F61ECD2791CC87FA4907F21C4FEAAC000000000'
-        
-        response = requests.get(url_alt, cookies=auth_cookies, verify=False)
-        data = response.json()['data'][0]
-
-        technology_types = set()
-        
-        for entry in data['entries_pool']:
-            technology_type = entry['content']['TYPE']
-            technology_types.add(technology_type)
-
-        return technology_types
-
     def convert_datetime_to_timestamp(self, date_and_time):
         attr = date_and_time.split('-')
         dt = datetime(year=int(attr[0]), month=int(attr[1]), 
@@ -222,7 +206,33 @@ class EventService:
     
     def get_protected_objects(self, iwtm_ip, auth_cookies):
         url = 'https://' + iwtm_ip + '/api/protectedDocument?start=0&limit=100'
+        response = requests.get(url, cookies=auth_cookies, verify=False)
+        data = response.json()
+        return data['data']
 
+    def find_protected_object_by_name(self, protected_objects, name):
+        found_objects = []
+        for protected_object in protected_objects:
+            if name in protected_object['DISPLAY_NAME']:
+                found_objects.append(protected_object)
+        return found_objects
+    
+    def get_protected_object_technologies(self, protected_objects):
+        technologies = set()
+        for protected_object in protected_objects:
+            for entry in protected_object['entries_pool']:
+                technology = entry['content']['TYPE']
+                technologies.add(technology)
+        return technologies
+    
+    def set_object_technologies(self, events, protected_objects):
+        for item in events:
+            protected_object_name = item['protected_object']
+            technologies = []
+            if protected_object_name:
+                found_protected_objects = self.find_protected_object_by_name(protected_objects, protected_object_name)
+                technologies = self.get_protected_object_technologies(found_protected_objects)
+            item['protected_object_technologies'] = technologies
     
     def parse_iwtm_events(self, events, iwtm_ip, auth_cookies):
         parsed_events = []
@@ -366,8 +376,8 @@ class EventService:
             item['stats']['wrong_violation_level'] += 1
     
     def export_participant_result(self, result, filename):
-        start_x = 3
-        start_y = 3
+        start_x = 2
+        start_y = 1
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), 
                             top=Side(style='thin'), bottom=Side(style='thin'))
         cell_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -375,23 +385,16 @@ class EventService:
         sheet = book.active
         x_idx = start_x
         y_idx = start_y
-        column_headers = ['Ложные политики', 'Несработавшие политики', 
+        column_headers = ['Задание', 'Политика', 'Ложные политики', 'Несработавшие политики', 
                         'Ложные объекты', 'Несработавшие объекты', 
                         'Ложные теги', 'Неправильные теги', 'Неправильные вердикты',
                         'Неправильные уровни нарушения', 'Итого недочетов']
         
-        sheet.cell(x_idx, y_idx).border = thin_border
-        sheet.column_dimensions[get_column_letter(y_idx)].width = 15
-        y_idx += 1
-        sheet.cell(x_idx, y_idx).border = thin_border
-        sheet.column_dimensions[get_column_letter(y_idx)].width = 15
-        
-        y_idx += 1
         for header in column_headers:
             sheet.cell(x_idx, y_idx).value = header
             sheet.cell(x_idx, y_idx).border = thin_border
             sheet.cell(x_idx, y_idx).alignment = cell_align
-            sheet.column_dimensions[get_column_letter(y_idx)].width = 15
+            sheet.column_dimensions[get_column_letter(y_idx)].width = 18
             y_idx += 1
         
         for item in result:
@@ -403,10 +406,10 @@ class EventService:
                             item['stats']['false_objects'] + item['stats']['failed_objects'] +
                             item['stats']['false_tags'] + item['stats']['wrong_tags'] +
                             item['stats']['wrong_verdict'] + item['stats']['wrong_violation_level'])
-            sheet.cell(x_idx, y_idx).value = policy
+            sheet.cell(x_idx, y_idx).value = task
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task
+            sheet.cell(x_idx, y_idx).value = policy
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
             sheet.cell(x_idx, y_idx).value = item['stats']['false_policies']
@@ -437,21 +440,15 @@ class EventService:
             sheet.cell(x_idx, y_idx).border = thin_border
         
         
-        column_headers_doc = ['Ложные объекты', 'Несработавшие объекты', 'Итого недочетов']
+        column_headers_doc = ['Задание', 'Объект защиты', 'Ложные объекты', 
+                              'Несработавшие объекты', 'Итого недочетов', 'Типы технологий']
         y_idx = start_y
         x_idx += 3
-        sheet.cell(x_idx, y_idx).border = thin_border
-        sheet.column_dimensions[get_column_letter(y_idx)].width = 20
-        y_idx += 1
-        sheet.cell(x_idx, y_idx).border = thin_border
-        sheet.column_dimensions[get_column_letter(y_idx)].width = 15
-        y_idx += 1
-        
         for header in column_headers_doc:
             sheet.cell(x_idx, y_idx).value = header
             sheet.cell(x_idx, y_idx).border = thin_border
             sheet.cell(x_idx, y_idx).alignment = cell_align
-            sheet.column_dimensions[get_column_letter(y_idx)].width = 15
+            sheet.column_dimensions[get_column_letter(y_idx)].width = 18
             y_idx += 1
 
         for item in result:
@@ -460,10 +457,10 @@ class EventService:
             protected_object = item['protected_object']
             task = item['task_number']
             total_errors = item['stats']['false_objects'] + item['stats']['failed_objects']
-            sheet.cell(x_idx, y_idx).value = protected_object
+            sheet.cell(x_idx, y_idx).value = task
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
-            sheet.cell(x_idx, y_idx).value = task
+            sheet.cell(x_idx, y_idx).value = protected_object
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
             sheet.cell(x_idx, y_idx).value = item['stats']['false_objects']
@@ -473,5 +470,10 @@ class EventService:
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
             sheet.cell(x_idx, y_idx).value = total_errors
+            sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            if item['protected_object_technologies']:
+                technologies_str = ", ".join(item['protected_object_technologies'])
+                sheet.cell(x_idx, y_idx).value = technologies_str
             sheet.cell(x_idx, y_idx).border = thin_border
         book.save(filename)
