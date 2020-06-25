@@ -221,8 +221,11 @@ class EventService:
         technologies = set()
         for protected_object in protected_objects:
             for entry in protected_object['entries_pool']:
-                technology = entry['content']['TYPE']
-                technologies.add(technology)
+                if entry['ENTRY_TYPE'] == 'text_object':
+                    technologies.add(entry['ENTRY_TYPE'])
+                else:
+                    technology = entry['content']['TYPE']
+                    technologies.add(technology)
         return technologies
     
     def set_object_technologies(self, events, protected_objects):
