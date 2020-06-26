@@ -130,8 +130,8 @@ class EventService:
         return data['data']
     
     def get_token_from_iwtm(self, iwtm_ip, auth_cookies):
-        response = requests.get('https://' + iwtm_ip + '/api/plugin?merge_with[]=tokens',
-                            cookies=auth_cookies, verify=False)
+        url = 'https://' + iwtm_ip + '/api/plugin?merge_with[]=tokens'
+        response = requests.get(url, cookies=auth_cookies, verify=False)
         data = response.json()
         token = ''
         for plugin in data['data']:
