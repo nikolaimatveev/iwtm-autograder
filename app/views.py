@@ -102,13 +102,14 @@ def get_participant_result(request, ip):
 @api_view(['GET'])
 def check_testing(request):
     filename = 'app/static/template_events.xlsx'
-    iwtm_ip = 'ffs'
-    iwtm_login = 'ffds'
-    iwtm_password = 'fff'
-    date_and_time = 'fdfd'
+    iwtm_login = 'officer'
+    iwtm_password = 'xxXX1234'
+    date_and_time = '2020-06-24-18-30'
     iwtm_ip = '10.228.6.236:17443'
-    auth_cookies = event_service.login_to_iwtm(iwtm_ip, 'officer', 'xxXX1234')
-
+    auth_cookies = event_service.login_to_iwtm(iwtm_ip, iwtm_login, iwtm_password)
+    token = event_service.get_token_from_iwtm(iwtm_ip, auth_cookies)
+    iwtm_events = event_service.load_events_from_iwtm(iwtm_ip, token, date_and_time)
+    return Response(iwtm_events)
     #event_service.load_events(iwtm_ip,
     #                                  iwtm_login,
     #                                  iwtm_password,

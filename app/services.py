@@ -160,8 +160,8 @@ class EventService:
         params['with[]'] = [
             'protected_documents', 'policies', 'protected_catalogs',
             'tags', 'senders', 'recipients',
-            'senders_keys', 'recipients_keys'
-            ]
+            'senders_keys', 'recipients_keys',
+            'perimeters', 'attachments']
         response = requests.get(url, headers=headers, params=params, verify=False)
         data = response.json()
         if data['meta']['totalCount'] == 0:
