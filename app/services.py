@@ -168,11 +168,12 @@ class EventService:
             raise RuntimeError('No events found for the specified time period')
         return data['data']
 
-    def login_to_iwtm(self, iwtm_ip, username, password):    
-        resp = requests.get('https://10.228.6.236:17443/api/user/check', verify=False)
+    def login_to_iwtm(self, iwtm_ip, username, password):
+        api_root = 'https://' + iwtm_ip + '/api/'
+        resp = requests.get(api_root + 'user/check', verify=False)
         csrf_token = unquote(resp.cookies['YII_CSRF_TOKEN'])
     
-        response = requests.get('https://10.228.6.236:17443/api/salt', 
+        response = requests.get(api_root + 'salt', 
                                 cookies=resp.cookies, verify=False)
     
         response_json = response.json()
@@ -186,8 +187,9 @@ class EventService:
         headers = {}
         headers['x-csrf-token'] = csrf_token
     
-        response = requests.post('https://10.228.6.236:17443/api/login',
-                                json=data, cookies=resp.cookies, headers=headers, verify=False)
+        response = requests.post(api_root + 'login',
+                                json=data, cookies=resp.cookies, 
+                                headers=headers, verify=False)
         return response.cookies
     
     def crypt_password(self, password, salt):
@@ -239,7 +241,6 @@ class EventService:
     
     def parse_iwtm_events(self, events, iwtm_ip, auth_cookies):
         parsed_events = []
-        #protected_objects = self.get_protected_objects(iwtm_ip, auth_cookies)
         for event in events:
             parsed_event = {}
             parsed_event['id'] = event['OBJECT_ID']
