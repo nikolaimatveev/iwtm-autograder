@@ -1,82 +1,44 @@
-import csv
-import os
-import json
-import urllib.parse
-import urllib.request
-import ssl
-from openpyxl import Workbook
+from .grader_repository import GraderRepository
+from .iwtm_service import IWTMService
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Border, Side, Alignment
 from openpyxl.utils import get_column_letter
-from openpyxl import load_workbook
-import blowfish
-import base64
-import requests
-from datetime import datetime, timezone
-from time import gmtime, strftime
-from urllib.parse import unquote
 
-class EventService:
+class GraderService:
     def __init__(self, debug_mode):
-        self.debug_mode = debug_mode
-        # todo: store in db
-        self.participant_results = {}
-        self.participants = {}
-        self.auth_cookies = []
-
-    def load_events(self, iwtm_ip, iwtm_login, iwtm_password, 
-                            date_and_time, template_file_path):
-        template_events = self.load_template_events(template_file_path)
-        iwtm_events = []
-        if self.debug_mode:
-            iwtm_events_file = 'app/static/sample-events.json'
-            iwtm_events = self.load_iwtm_events_from_file(iwtm_events_file)
-        else:
-            if not self.isAuthCookiesValid(iwtm_ip, self.auth_cookies):
-                self.auth_cookies = self.login_to_iwtm(iwtm_ip, iwtm_login, iwtm_password)
-            token = self.get_token_from_iwtm(iwtm_ip, self.auth_cookies)
-            iwtm_events = self.load_events_from_iwtm(iwtm_ip, token, date_and_time)
-        
-        iwtm_events = self.parse_iwtm_events(iwtm_events, iwtm_ip, self.auth_cookies)
-        mapped_events = self.map_events(template_events, iwtm_events)
-        protected_objects = self.get_protected_objects(iwtm_ip, self.auth_cookies)
-        self.set_object_technologies(mapped_events, protected_objects)
-        self.save_participant_result(iwtm_ip, mapped_events)
-        return True
-
-    def isAuthCookiesValid(self, iwtm_ip, auth_cookies):
-        url = 'https://' + iwtm_ip + '/api/user/check'
-        response = requests.get(url, cookies=auth_cookies, verify=False)
-        data = response.json()
-        if response.status_code == 200 and data['state'] == 'data':
-            return True
-        else:
-            return False
-
-    def save_participant(self, ip, participant_info):
-        self.participants[ip] = participant_info
-
-    def save_participant_result(self, ip, result):
-        self.participant_results[ip] = result
-
-    def get_participants(self):
-        return self.participants.values()
-
-    def get_participant_by_ip(self, ip):
-        result = {}
-        if ip in self.participants:
-            result = self.participants[ip]
-        return result
-
-    def get_participant_result(self, ip):
-        result = {}
-        if ip in self.participant_results:
-            result = self.participant_results[ip]
-        return result
+        self.grader_repository = GraderRepository()
+        self.iwtm_service = IWTMService(debug_mode)
     
     def save_template_file(self, path, file):
         with open(path, 'wb+') as destination:
             for chunk in file.chunks():
                 destination.write(chunk)
+    
+    def save_participant_result(self, ip, result):
+        self.grader_repository.save_participant_result(ip, result)
+    
+    def find_participant_result_by_ip(self, ip):
+        return self.grader_repository.find_participant_result_by_ip(ip)
+    
+    def save_participant(self, ip, participant):
+        self.grader_repository.save_participant(ip, participant)
+
+    def get_all_participants(self):
+        return self.grader_repository.get_all_participants()
+
+    def find_participant_by_ip(self, ip):
+        return self.grader_repository.find_participant_by_ip(ip)
+
+    def load_events(self, iwtm_ip, username, password, date_and_time, template_file_path):
+        template_events = self.load_template_events(template_file_path)
+        
+        auth_cookies = self.iwtm_service.login(iwtm_ip, username, password)
+        iwtm_events = self.iwtm_service.get_parsed_events(iwtm_ip, auth_cookies, date_and_time)
+        
+        mapped_events = self.map_events(template_events, iwtm_events)
+        protected_objects = self.iwtm_service.get_protected_objects(iwtm_ip, auth_cookies)
+        self.iwtm_service.set_object_technologies(mapped_events, protected_objects)
+        return mapped_events
     
     def load_template_events(self, filename):
         template_events = []
@@ -122,144 +84,7 @@ class EventService:
             task_item['stats'] = {}
             template_events.append(task_item)
         return template_events
-    
-    def load_iwtm_events_from_file(self, filename):
-        data = []
-        with open(filename, encoding='utf-8') as json_file:
-            data = json.load(json_file)
-        return data['data']
-    
-    def get_token_from_iwtm(self, iwtm_ip, auth_cookies):
-        url = 'https://' + iwtm_ip + '/api/plugin?merge_with[]=tokens'
-        response = requests.get(url, cookies=auth_cookies, verify=False)
-        data = response.json()
-        token = ''
-        for plugin in data['data']:
-            if plugin['DISPLAY_NAME'] == 'DataExport plugin':
-                token = plugin['tokens'][0]['USERNAME']
-        return token
 
-    def convert_datetime_to_timestamp(self, date_and_time):
-        attr = date_and_time.split('-')
-        dt = datetime(year=int(attr[0]), month=int(attr[1]), 
-                      day=int(attr[2]), hour=int(attr[3]), minute=int(attr[4]))
-        timestamp = dt.replace(tzinfo=timezone.utc).timestamp()
-        return timestamp
-
-    def load_events_from_iwtm(self, iwtm_ip, token, date_and_time):
-        url = 'https://' + iwtm_ip + '/xapi/event'
-        headers = {}
-        headers['X-API-Version'] = '1.2'
-        headers['X-API-CompanyId'] = 'GUAP'
-        headers['X-API-ImporterName'] = 'GUAP'
-        headers['X-API-Auth-Token'] = token
-        params = {}
-        params['start'] = 0
-        timestamp = self.convert_datetime_to_timestamp(date_and_time)
-        params['filter[date][from]'] = timestamp
-        params['with[]'] = [
-            'protected_documents', 'policies', 'protected_catalogs',
-            'tags', 'senders', 'recipients',
-            'senders_keys', 'recipients_keys',
-            'perimeters', 'attachments']
-        response = requests.get(url, headers=headers, params=params, verify=False)
-        data = response.json()
-        if data['meta']['totalCount'] == 0:
-            raise RuntimeError('No events found for the specified time period')
-        return data['data']
-
-    def login_to_iwtm(self, iwtm_ip, username, password):
-        api_root = 'https://' + iwtm_ip + '/api/'
-        resp = requests.get(api_root + 'user/check', verify=False)
-        csrf_token = unquote(resp.cookies['YII_CSRF_TOKEN'])
-    
-        response = requests.get(api_root + 'salt', 
-                                cookies=resp.cookies, verify=False)
-    
-        response_json = response.json()
-        salt = response_json['data']['salt']
-        crypted_password = self.crypt_password(password, salt)
-    
-        data = {}
-        data['username'] = username
-        data['crypted_password'] = crypted_password
-
-        headers = {}
-        headers['x-csrf-token'] = csrf_token
-    
-        response = requests.post(api_root + 'login',
-                                json=data, cookies=resp.cookies, 
-                                headers=headers, verify=False)
-        return response.cookies
-    
-    def crypt_password(self, password, salt):
-        key_bytes = salt.encode('utf-8')
-        cipher = blowfish.Cipher(key_bytes)
-        msg_bytes = password.encode('utf-8')
-        
-        block_size = 8
-        padding_len = -len(msg_bytes) % block_size
-        msg_bytes = msg_bytes.ljust(len(msg_bytes) + padding_len, b'\0')
-        
-        data_encrypted = b"".join(cipher.encrypt_ecb(msg_bytes))
-        crypted_bytes = base64.b64encode(data_encrypted)
-        crypted_base64 = crypted_bytes.decode('utf-8')
-        return crypted_base64
-    
-    def get_protected_objects(self, iwtm_ip, auth_cookies):
-        url = 'https://' + iwtm_ip + '/api/protectedDocument?start=0&limit=100'
-        response = requests.get(url, cookies=auth_cookies, verify=False)
-        data = response.json()
-        return data['data']
-
-    def find_protected_object_by_name(self, protected_objects, name):
-        found_objects = []
-        for protected_object in protected_objects:
-            if name in protected_object['DISPLAY_NAME']:
-                found_objects.append(protected_object)
-        return found_objects
-    
-    def get_protected_object_technologies(self, protected_objects):
-        technologies = set()
-        for protected_object in protected_objects:
-            for entry in protected_object['entries_pool']:
-                if entry['ENTRY_TYPE'] == 'text_object':
-                    technologies.add(entry['ENTRY_TYPE'])
-                else:
-                    technology = entry['content']['TYPE']
-                    technologies.add(technology)
-        return technologies
-    
-    def set_object_technologies(self, events, protected_objects):
-        for item in events:
-            protected_object_name = item['protected_object']
-            technologies = []
-            if protected_object_name:
-                found_protected_objects = self.find_protected_object_by_name(protected_objects, protected_object_name)
-                technologies = self.get_protected_object_technologies(found_protected_objects)
-            item['protected_object_technologies'] = technologies
-    
-    def parse_iwtm_events(self, events, iwtm_ip, auth_cookies):
-        parsed_events = []
-        for event in events:
-            parsed_event = {}
-            parsed_event['id'] = event['OBJECT_ID']
-            parsed_event['capture_date'] = event['CAPTURE_DATE']
-            subject = json.loads(event['PREVIEW_DATA'])['subject'].split(', ')
-            event_sender = subject[0].split(':')[1].strip()
-            event_recipient = subject[1].split(':')[1].strip()
-            event_filename = subject[2].split(':')[1].strip()
-            parsed_event['sender'] = event_sender
-            parsed_event['recipient'] = event_recipient
-            parsed_event['filename'] = event_filename
-            parsed_event['policies'] = self.simplify_json_array(event['policies'])
-            parsed_event['protected_objects'] = self.simplify_json_array(event['protected_documents'])
-            parsed_event['tags'] = self.simplify_json_array(event['tags'])
-            parsed_event['verdict'] = event['VERDICT']
-            parsed_event['violation_level'] = event['VIOLATION_LEVEL']
-            parsed_events.append(parsed_event)
-        return parsed_events
-    
     def map_events(self, template_events, iwtm_events):
         mapped_events = []
         for item in template_events:
@@ -276,12 +101,6 @@ class EventService:
                 found_event = event
                 return found_event
         return found_event
-
-    def simplify_json_array(self, json_array):
-        result = []
-        for item in json_array:
-            result.append(item['DISPLAY_NAME'])
-        return result
 
     def check_events_normal_mode(self, grouped_events):
         self.check_events_max_mode(grouped_events)
