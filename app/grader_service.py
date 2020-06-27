@@ -33,7 +33,9 @@ class GraderService:
         template_events = self.load_template_events(template_file_path)
         
         auth_cookies = self.iwtm_service.login(iwtm_ip, username, password)
-        iwtm_events = self.iwtm_service.get_parsed_events(iwtm_ip, auth_cookies, date_and_time)
+        unique_senders = self.get_unique_senders(template_events)
+        unique_recipients = self.get_unique_recipients(template_events)
+        iwtm_events = self.iwtm_service.get_parsed_events(iwtm_ip, auth_cookies, date_and_time, unique_senders, unique_recipients)
         
         mapped_events = self.map_events(template_events, iwtm_events)
         protected_objects = self.iwtm_service.get_protected_objects(iwtm_ip, auth_cookies)
@@ -84,6 +86,19 @@ class GraderService:
             task_item['stats'] = {}
             template_events.append(task_item)
         return template_events
+    
+    def get_unique_senders(self, events):
+        return self.get_unique_values(events, 'sender')
+    
+    def get_unique_recipients(self, events):
+        return self.get_unique_values(events, 'recipient')
+
+    def get_unique_values(self, events, field):
+        result = set()
+        for item in events:
+            for event in item['events']:
+                result.add(event[field])
+        return result
 
     def map_events(self, template_events, iwtm_events):
         mapped_events = []

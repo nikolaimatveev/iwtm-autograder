@@ -7,10 +7,12 @@ class IWTMService:
     def __init__(self, debug_mode):
         self.debug_mode = debug_mode
     
-    def get_parsed_events(self, ip, auth_cookies, date_and_time):
+    def get_parsed_events(self, ip, auth_cookies, date_and_time, unique_senders, unique_recipients):
         token = self.get_token(ip, auth_cookies)
         events = self.load_events(ip, token, date_and_time)
-        events = self.parse_events(events, ip, auth_cookies)
+        persons = self.get_persons(ip, token)
+        groups = self.get_groups(ip, token)
+        events = self.parse_events(events, persons, groups, unique_senders, unique_recipients)
         return events
 
     def isAuthCookiesValid(self, ip, auth_cookies):
@@ -58,11 +60,7 @@ class IWTMService:
     
     def load_events(self, ip, token, date_and_time):
         url = 'https://' + ip + '/xapi/event'
-        headers = {}
-        headers['X-API-Version'] = '1.2'
-        headers['X-API-CompanyId'] = 'GUAP'
-        headers['X-API-ImporterName'] = 'GUAP'
-        headers['X-API-Auth-Token'] = token
+        headers = self.get_request_headers(token)
         params = {}
         params['start'] = 0
         timestamp = utils.convert_datetime_to_timestamp(date_and_time)
@@ -78,19 +76,31 @@ class IWTMService:
             raise RuntimeError('No events found for the specified time period')
         return data['data']
 
-    def parse_events(self, events, ip, auth_cookies):
+    def get_request_headers(self, token):
+        headers = {}
+        headers['X-API-Version'] = '1.2'
+        headers['X-API-CompanyId'] = 'GUAP'
+        headers['X-API-ImporterName'] = 'GUAP'
+        headers['X-API-Auth-Token'] = token
+        return headers
+
+    def parse_events(self, events, persons, groups, unique_senders, unique_recipients):
         parsed_events = []
         for event in events:
             parsed_event = {}
             parsed_event['id'] = event['OBJECT_ID']
             parsed_event['capture_date'] = event['CAPTURE_DATE']
-            subject = json.loads(event['PREVIEW_DATA'])['subject'].split(', ')
-            event_sender = subject[0].split(':')[1].strip()
-            event_recipient = subject[1].split(':')[1].strip()
-            event_filename = subject[2].split(':')[1].strip()
-            parsed_event['sender'] = event_sender
-            parsed_event['recipient'] = event_recipient
-            parsed_event['filename'] = event_filename
+            parsed_event['filename'] = event['attachments'][0]['FILE_NAME']
+            
+            sender_id = event['senders'][0][0]['PARTICIPANT_ID']
+            parsed_event['sender'] = self.get_person_group(sender_id, persons, groups, unique_senders)
+            
+            if event['recipients']:
+                recipient_id = event['recipients'][0][0]['PARTICIPANT_ID']
+                parsed_event['recipient'] = self.get_person_group(recipient_id, persons, groups, unique_recipients)
+            else:
+                parsed_event['recipient'] = 'External'
+            
             parsed_event['policies'] = utils.simplify_json_array(event['policies'])
             parsed_event['protected_objects'] = utils.simplify_json_array(event['protected_documents'])
             parsed_event['tags'] = utils.simplify_json_array(event['tags'])
@@ -98,6 +108,15 @@ class IWTMService:
             parsed_event['violation_level'] = event['VIOLATION_LEVEL']
             parsed_events.append(parsed_event)
         return parsed_events
+
+    def get_person_group(self, person_id, persons, groups, allowed_groups):
+        empty_result = ''
+        person = self.find_person_by_id(persons, person_id)
+        for person_group in person['p2g']:
+            group = self.find_group_by_id(groups, person_group['PARENT_GROUP_ID'])
+            if group['DISPLAY_NAME'] in allowed_groups:
+                return group['DISPLAY_NAME']
+        return empty_result
 
     def get_protected_objects(self, ip, auth_cookies):
         url = 'https://' + ip + '/api/protectedDocument?start=0&limit=100'
@@ -131,3 +150,38 @@ class IWTMService:
                     technology = entry['content']['TYPE']
                     technologies.add(technology)
         return technologies
+
+    def get_persons(self, ip, token):
+        url = 'https://' + ip + '/xapi/person'
+        headers = self.get_request_headers(token)
+        params = {}
+        params['start'] = 0
+        params['limit'] = 1000
+        params['with[]'] = 'p2g'
+        response = requests.get(url, headers=headers, params=params, verify=False)
+        data = response.json()
+        return data['data']
+    
+    def get_groups(self, ip, token):
+        url = 'https://' + ip + '/xapi/group'
+        headers = self.get_request_headers(token)
+        params = {}
+        params['start'] = 0
+        params['limit'] = 1000
+        response = requests.get(url, headers=headers, params=params, verify=False)
+        data = response.json()
+        return data['data']
+
+    def find_person_by_id(self, persons, person_id):
+        empty_result = {}
+        for person in persons:
+            if person_id == person['PERSON_ID']:
+                return person
+        return empty_result
+
+    def find_group_by_id(self, groups, group_id):
+        empty_result = {}
+        for group in groups:
+            if group_id == group['GROUP_ID']:
+                return group
+        return empty_result

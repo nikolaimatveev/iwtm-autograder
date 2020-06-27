@@ -1,4 +1,5 @@
 from app.grader_service import GraderService
+from app.iwtm_service import IWTMService
 from django.http import HttpResponse, FileResponse
 from wsgiref.util import FileWrapper
 from rest_framework import status
@@ -96,9 +97,13 @@ def get_participant_result(request, ip):
 
 @api_view(['GET'])
 def check_testing(request):
+    iwtm_service = IWTMService(True)
     filename = 'app/static/template_events.xlsx'
-    iwtm_login = 'officer'
-    iwtm_password = 'xxXX1234'
+    username = 'officer'
+    password = 'xxXX1234'
     date_and_time = '2020-06-24-18-30'
     iwtm_ip = '10.228.6.236:17443'
-    return Response(iwtm_ip)
+    auth_cookies = iwtm_service.login(iwtm_ip, username, password)
+    token = iwtm_service.get_token(iwtm_ip, auth_cookies)
+    events = iwtm_service.load_events(iwtm_ip, token, date_and_time)
+    return Response(events)
