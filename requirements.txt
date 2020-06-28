@@ -1,0 +1,9 @@
+asgiref==3.2.7
+attrs==19.3.0
+blowfish==0.6.1
+Django==3.0.5
+django-cors-headers==3.4.0
+djangorestframework==3.11.0
+openpyxl==3.0.3
+pytz==2020.1
+requests==2.24.0
