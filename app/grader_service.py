@@ -216,8 +216,8 @@ class GraderService:
         if iwtm_event['diff']['violation_level']:
             item['stats']['wrong_violation_level'] += 1
 
-    def export_participant_result(self, result, filename, locale):
-        start_x = 2
+    def export_participant_result(self, result, participant, filename, locale):
+        start_x = 1
         start_y = 1
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), 
                             top=Side(style='thin'), bottom=Side(style='thin'))
@@ -226,6 +226,18 @@ class GraderService:
         sheet = book.active
         x_idx = start_x
         y_idx = start_y
+
+        participant_info_str = 'Участник: ' if locale == 'ru' else 'Competitor: '
+        participant_info_str += participant['number'] + ' '
+        participant_info_str += participant['last_name'] + ' '
+        participant_info_str += participant['ip']
+        sheet.cell(x_idx, y_idx).value = participant_info_str
+        y_idx += 1
+        sheet.cell(x_idx, y_idx).value = 'Метод оценки' if locale == 'ru' else 'Check mode'
+        y_idx += 1
+        sheet.cell(x_idx, y_idx).value = self.get_check_mode_display_name(participant['check_mode'], locale)
+        y_idx = start_y
+        x_idx += 1
         
         policy_column_headers = self.get_policy_column_headers(locale)
         
@@ -387,3 +399,15 @@ class GraderService:
             return technologies
         else:
             raise RuntimeError('Unsupported locale')
+
+    def get_check_mode_display_name(self, check_mode, locale):
+        if locale == 'ru':
+            if check_mode == 'normal':
+                return 'умеренная оценка'
+            else:
+                return 'максимальная оценка'
+        else:
+            if check_mode == 'normal':
+                return 'normal check mode'
+            else:
+                return 'max check mode'
