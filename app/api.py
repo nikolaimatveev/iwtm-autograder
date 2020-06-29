@@ -95,9 +95,10 @@ def get_participant(request, ip):
 @api_view(['GET'])
 def download_participant_result(request, ip):
     path = 'app/static/'
+    locale = request.GET.get('locale')
     filename = 'result-' + ip.replace('.', '-') + '.xlsx'
     result = grader_service.find_participant_result_by_ip(ip)
-    grader_service.export_participant_result(result, path + filename)
+    grader_service.export_participant_result(result, path + filename, locale)
     result_file = open(path + filename, 'rb')
     response = HttpResponse(result_file, content_type='application/**')
     response['Content-Disposition'] = 'attachment; filename=' + filename

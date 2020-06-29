@@ -215,8 +215,8 @@ class GraderService:
             item['stats']['wrong_verdict'] += 1
         if iwtm_event['diff']['violation_level']:
             item['stats']['wrong_violation_level'] += 1
-    
-    def export_participant_result(self, result, filename):
+
+    def export_participant_result(self, result, filename, locale):
         start_x = 2
         start_y = 1
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), 
@@ -226,12 +226,10 @@ class GraderService:
         sheet = book.active
         x_idx = start_x
         y_idx = start_y
-        column_headers = ['Задание', 'Политика', 'Ложные политики', 'Несработавшие политики', 
-                        'Ложные объекты', 'Несработавшие объекты', 
-                        'Ложные теги', 'Неправильные теги', 'Неправильные вердикты',
-                        'Неправильные уровни нарушения', 'Итого недочетов']
         
-        for header in column_headers:
+        policy_column_headers = self.get_policy_column_headers(locale)
+        
+        for header in policy_column_headers:
             sheet.cell(x_idx, y_idx).value = header
             sheet.cell(x_idx, y_idx).border = thin_border
             sheet.cell(x_idx, y_idx).alignment = cell_align
@@ -280,17 +278,17 @@ class GraderService:
             sheet.cell(x_idx, y_idx).value = total_errors
             sheet.cell(x_idx, y_idx).border = thin_border
         
-        
-        column_headers_doc = ['Задание', 'Объект защиты', 'Ложные объекты', 
-                              'Несработавшие объекты', 'Итого недочетов', 'Типы технологий']
+        protected_object_column_headers = self.get_protected_object_column_headers(locale)
         y_idx = start_y
         x_idx += 3
-        for header in column_headers_doc:
+        for header in protected_object_column_headers:
             sheet.cell(x_idx, y_idx).value = header
             sheet.cell(x_idx, y_idx).border = thin_border
             sheet.cell(x_idx, y_idx).alignment = cell_align
             sheet.column_dimensions[get_column_letter(y_idx)].width = 18
             y_idx += 1
+
+        technologies = self.get_technologies_dict(locale)
 
         for item in result:
             x_idx += 1
@@ -314,7 +312,78 @@ class GraderService:
             sheet.cell(x_idx, y_idx).border = thin_border
             y_idx += 1
             if item['protected_object_technologies']:
-                technologies_str = ", ".join(item['protected_object_technologies'])
+                display_names = []
+                for technology in item['protected_object_technologies']:
+                    display_names.append(self.get_technology_display_name(technologies, technology))
+                technologies_str = ", ".join(display_names)
                 sheet.cell(x_idx, y_idx).value = technologies_str
             sheet.cell(x_idx, y_idx).border = thin_border
         book.save(filename)
+
+    def get_policy_column_headers(self, locale):
+        if locale == 'ru':
+            column_headers = [
+                'Задание', 'Политика', 'Ложные политики', 'Несработавшие политики', 
+                'Ложные объекты', 'Несработавшие объекты', 
+                'Ложные теги', 'Неправильные теги', 'Неправильные вердикты',
+                'Неправильные уровни нарушения', 'Итого недочетов'
+            ]
+            return column_headers
+        elif locale == 'en':
+            column_headers = [
+                'Task', 'Policy', 'False policies', 'Failed policies', 
+                'False protected objects', 'Failed protected objects', 
+                'False tags', 'Wrong tags', 'Wrong verdicts',
+                'Wrong violation levels', 'Total errors'
+            ]
+            return column_headers
+        else:
+            raise RuntimeError('Unsupported locale')
+    
+    def get_protected_object_column_headers(self, locale):
+        if locale == 'ru':
+            column_headers = [
+                'Задание', 'Объект защиты', 'Ложные объекты', 
+                'Несработавшие объекты', 'Итого недочетов',
+                'Типы технологий'
+            ]
+            return column_headers
+        elif locale == 'en':
+            column_headers = [
+                'Task', 'Protected object', 'False protected objects', 
+                'Failed protected objects', 'Total errors',
+                'Technologies'
+            ]
+            return column_headers
+        else:
+            raise RuntimeError('Unsupported locale')
+
+    def get_technology_display_name(self, technologies, technology):
+        display_name = ''
+        if technology in technologies:
+            display_name = technologies[technology]
+        return display_name
+
+    def get_technologies_dict(self, locale):
+        if locale == 'ru':
+            technologies = {}
+            technologies['term'] = 'категория'
+            technologies['stamp'] = 'печать'
+            technologies['form'] = 'бланк'
+            technologies['fingerprint'] = 'эталонный документ'
+            technologies['text_object'] = 'текстовый объект'
+            technologies['table'] = 'выгрузка из БД'
+            technologies['graphic'] = 'графический объект'
+            return technologies
+        elif locale == 'en':
+            technologies = {}
+            technologies['term'] = 'category'
+            technologies['stamp'] = 'stamp'
+            technologies['form'] = 'blank'
+            technologies['fingerprint'] = 'sample document'
+            technologies['text_object'] = 'text object'
+            technologies['table'] = 'DB unloading'
+            technologies['graphic'] = 'graphical object'
+            return technologies
+        else:
+            raise RuntimeError('Unsupported locale')
