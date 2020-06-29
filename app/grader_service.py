@@ -18,7 +18,10 @@ class GraderService:
         self.grader_repository.save_participant_result(ip, result)
     
     def find_participant_result_by_ip(self, ip):
-        return self.grader_repository.find_participant_result_by_ip(ip)
+        participant_result = self.grader_repository.find_participant_result_by_ip(ip)
+        if not participant_result:
+            raise RuntimeError('Participant result not found')
+        return participant_result
     
     def save_participant(self, ip, participant):
         self.grader_repository.save_participant(ip, participant)

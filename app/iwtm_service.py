@@ -46,6 +46,7 @@ class IWTMService:
         response = requests.post(api_root + 'login',
                                 json=data, cookies=resp.cookies, 
                                 headers=headers, verify=False)
+        response.raise_for_status()
         return response.cookies
     
     def get_token(self, ip, auth_cookies):

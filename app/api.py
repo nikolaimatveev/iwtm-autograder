@@ -1,3 +1,4 @@
+import requests
 from app.grader_service import GraderService
 from app.iwtm_service import IWTMService
 from django.http import HttpResponse, FileResponse
@@ -34,6 +35,16 @@ def load_events(request):
                                     iwtm_password,
                                     date_and_time, 
                                     template_file_path)
+    except requests.exceptions.ConnectionError as e:
+        return Response({'error': 'No connection to IWTM'}, status=status.HTTP_400_BAD_REQUEST)
+    except requests.exceptions.HTTPError as e:
+        error_message = ''
+        status_code = e.response.status_code
+        if status_code == 403:
+            error_message = 'Invalid username or password'
+        else:
+            error_message = 'HTTP Error'
+        return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
     except RuntimeError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -51,7 +62,10 @@ def load_events(request):
 def check_events(request):
     check_mode = request.data['check_mode']
     ip = request.data['ip']
-    events = grader_service.find_participant_result_by_ip(ip)
+    try:
+        events = grader_service.find_participant_result_by_ip(ip)
+    except RuntimeError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     result = []
     if check_mode == 'normal':
         print('normal mode')
