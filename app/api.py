@@ -54,6 +54,8 @@ def load_events(request):
     participant['last_name'] = competitor_last_name
     participant['isChecked'] = False
     participant['check_mode'] = 'none'
+    participant['iwtm_username'] = iwtm_login
+    participant['iwtm_password'] = iwtm_password
     grader_service.save_participant(participant)
     grader_service.save_participant_result(competitor_number, mapped_events)
     return Response({'message': 'Success'}, status=status.HTTP_201_CREATED)
@@ -62,6 +64,7 @@ def load_events(request):
 def check_events(request):
     check_mode = request.data['check_mode']
     participant_number = request.data['participant_number']
+    participant = grader_service.find_participant_by_number(participant_number)
     try:
         events = grader_service.find_participant_result_by_number(participant_number)
     except RuntimeError as e:
@@ -69,14 +72,21 @@ def check_events(request):
     result = []
     if check_mode == 'normal':
         print('normal mode')
-        result = grader_service.check_events_normal_mode(events)
+        iwtm_ip = participant['ip']
+        iwtm_username = participant['iwtm_username']
+        iwtm_password = participant['iwtm_password']
+        auth_cookie = grader_service.get_auth_cookie(participant_number)
+        if not grader_service.iwtm_service.isAuthCookiesValid(iwtm_ip, auth_cookie):
+            auth_cookie = grader_service.iwtm_service.login(iwtm_ip, iwtm_username, iwtm_password)
+            grader_service.save_auth_cookie(participant_number, auth_cookie)
+        iwtm_policies = grader_service.iwtm_service.get_policies(iwtm_ip, auth_cookie)
+        result = grader_service.check_events_normal_mode(events, iwtm_policies)
     else:
         print('max mode')
         result = grader_service.check_events_max_mode(events)
 
     grader_service.save_participant_result(participant_number, result)
     
-    participant = grader_service.find_participant_by_number(participant_number)
     participant['isChecked'] = True
     participant['check_mode'] = check_mode
     grader_service.save_participant(participant)

@@ -186,3 +186,26 @@ class IWTMService:
             if group_id == group['GROUP_ID']:
                 return group
         return empty_result
+
+    def get_policies(self, ip, auth_cookies):
+        url = 'https://' + ip + '/api/policy?sort[CREATE_DATE]=asc'
+        response = requests.get(url, cookies=auth_cookies, verify=False)
+        data = response.json()
+        return data['data']
+    
+    def find_policy_by_name(self, policies, name):
+        empty_result = {}
+        for policy in policies:
+            if name == policy['DISPLAY_NAME']:
+                return policy
+        return empty_result
+    
+    def get_tags_from_policy_transfer_rules(self, policy):
+        tags = set()
+        for rule in policy['rules']:
+            if rule['TYPE'] == 'transfer':
+                for action in rule['actions']:
+                    if action['TYPE'] == 'TAG':
+                        for tag in action['DATA']['VALUE']:
+                            tags.add(tag['NAME'])
+        return tags

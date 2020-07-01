@@ -32,6 +32,12 @@ class GraderService:
     def find_participant_by_number(self, number):
         return self.grader_repository.find_participant_by_number(number)
 
+    def save_auth_cookie(self, participant_number, auth_cookie):
+        return self.grader_repository.save_auth_cookie(participant_number, auth_cookie)
+
+    def get_auth_cookie(self, participant_number):
+        return self.grader_repository.get_auth_cookie(participant_number)
+
     def load_events(self, iwtm_ip, username, password, date_and_time, template_file_path):
         template_events = self.load_template_events(template_file_path)
         
@@ -120,17 +126,19 @@ class GraderService:
                 return found_event
         return found_event
 
-    def check_events_normal_mode(self, grouped_events):
+    def check_events_normal_mode(self, grouped_events, iwtm_policies):
         self.check_events_max_mode(grouped_events)
         for item in grouped_events:
-            self.find_false_triggering_and_update_stats(item, grouped_events)
+            self.find_false_triggering_and_update_stats(item, grouped_events, iwtm_policies)
         return grouped_events
 
-    def find_false_triggering_and_update_stats(self, item, grouped_events):
+    def find_false_triggering_and_update_stats(self, item, grouped_events, iwtm_policies):
         policy = item['policy']
         protected_object = item['protected_object']
-        tags = self.find_tags_in_task_events(item)
-        print(tags)
+        iwtm_policy = self.iwtm_service.find_policy_by_name(iwtm_policies, policy)
+        tags = []
+        if iwtm_policy:
+            tags = self.iwtm_service.get_tags_from_policy_transfer_rules(iwtm_policy)
         for any_item in grouped_events:
             for policy_event in any_item['events']:
                 iwtm_event = policy_event['iwtm_event']
