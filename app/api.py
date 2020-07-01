@@ -54,16 +54,16 @@ def load_events(request):
     participant['last_name'] = competitor_last_name
     participant['isChecked'] = False
     participant['check_mode'] = 'none'
-    grader_service.save_participant(iwtm_ip, participant)
-    grader_service.save_participant_result(iwtm_ip, mapped_events)
+    grader_service.save_participant(participant)
+    grader_service.save_participant_result(competitor_number, mapped_events)
     return Response({'message': 'Success'}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 def check_events(request):
     check_mode = request.data['check_mode']
-    ip = request.data['ip']
+    participant_number = request.data['participant_number']
     try:
-        events = grader_service.find_participant_result_by_ip(ip)
+        events = grader_service.find_participant_result_by_number(participant_number)
     except RuntimeError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     result = []
@@ -74,12 +74,12 @@ def check_events(request):
         print('max mode')
         result = grader_service.check_events_max_mode(events)
 
-    grader_service.save_participant_result(ip, result)
+    grader_service.save_participant_result(participant_number, result)
     
-    participant = grader_service.find_participant_by_ip(ip)
+    participant = grader_service.find_participant_by_number(participant_number)
     participant['isChecked'] = True
     participant['check_mode'] = check_mode
-    grader_service.save_participant(ip, participant)
+    grader_service.save_participant(participant)
     return Response(result)
 
 @api_view(['GET'])
@@ -88,17 +88,18 @@ def get_participants(request):
     return Response(participants)
 
 @api_view(['GET'])
-def get_participant(request, ip):
-    participant = grader_service.find_participant_by_ip(ip)
+def get_participant(request, number):
+    participant = grader_service.find_participant_by_number(number)
     return Response(participant)
 
 @api_view(['GET'])
-def download_participant_result(request, ip):
+def download_participant_result(request, number):
+    result = grader_service.find_participant_result_by_number(number)
+    participant = grader_service.find_participant_by_number(number)
+    ip = participant['ip']
     path = 'app/static/'
     locale = request.GET.get('locale')
     filename = 'result-' + ip.replace('.', '-') + '.xlsx'
-    result = grader_service.find_participant_result_by_ip(ip)
-    participant = grader_service.find_participant_by_ip(ip)
     grader_service.export_participant_result(result, participant, path + filename, locale)
     result_file = open(path + filename, 'rb')
     response = HttpResponse(result_file, content_type='application/**')
@@ -107,8 +108,8 @@ def download_participant_result(request, ip):
     return response
 
 @api_view(['GET'])
-def get_participant_result(request, ip):
-    result = grader_service.find_participant_result_by_ip(ip)
+def get_participant_result(request, number):
+    result = grader_service.find_participant_result_by_number(number)
     return Response(result)
 
 @api_view(['GET'])

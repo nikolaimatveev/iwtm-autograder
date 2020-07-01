@@ -14,23 +14,23 @@ class GraderService:
             for chunk in file.chunks():
                 destination.write(chunk)
     
-    def save_participant_result(self, ip, result):
-        self.grader_repository.save_participant_result(ip, result)
+    def save_participant_result(self, participant_number, result):
+        self.grader_repository.save_participant_result(participant_number, result)
     
-    def find_participant_result_by_ip(self, ip):
-        participant_result = self.grader_repository.find_participant_result_by_ip(ip)
+    def find_participant_result_by_number(self, number):
+        participant_result = self.grader_repository.find_participant_result_by_number(number)
         if not participant_result:
             raise RuntimeError('Participant result not found')
         return participant_result
     
-    def save_participant(self, ip, participant):
-        self.grader_repository.save_participant(ip, participant)
+    def save_participant(self, participant):
+        self.grader_repository.save_participant(participant)
 
     def get_all_participants(self):
         return self.grader_repository.get_all_participants()
 
-    def find_participant_by_ip(self, ip):
-        return self.grader_repository.find_participant_by_ip(ip)
+    def find_participant_by_number(self, number):
+        return self.grader_repository.find_participant_by_number(number)
 
     def load_events(self, iwtm_ip, username, password, date_and_time, template_file_path):
         template_events = self.load_template_events(template_file_path)
@@ -129,6 +129,8 @@ class GraderService:
     def find_false_triggering_and_update_stats(self, item, grouped_events):
         policy = item['policy']
         protected_object = item['protected_object']
+        tags = self.find_tags_in_task_events(item)
+        print(tags)
         for any_item in grouped_events:
             for policy_event in any_item['events']:
                 iwtm_event = policy_event['iwtm_event']
@@ -136,8 +138,11 @@ class GraderService:
                         policy not in policy_event['policies']):
                     item['stats']['false_policies'] += 1
                     any_item['stats']['false_policies'] -= 1
-                    item['stats']['false_tags'] += 1
-                    any_item['stats']['false_tags'] -= 1
+                    for tag in tags:
+                        if (tag in iwtm_event['tags'] and
+                            tag not in policy_event['tags']):
+                            item['stats']['false_tags'] += 1
+                            any_item['stats']['false_tags'] -= 1
                     
                 if (protected_object in iwtm_event['protected_objects'] and
                         protected_object not in policy_event['protected_objects']):
@@ -154,6 +159,13 @@ class GraderService:
         for task_event in item['events']:
             self.find_and_set_event_difference(task_event['iwtm_event'], task_event)
             self.update_task_stats(item, task_event['iwtm_event'], task_event)
+
+    def find_tags_in_task_events(self, item):
+        tags = set()
+        for event in item['events']:
+            for tag in event['tags']:
+                tags.add(tag)
+        return tags
 
     def init_task_stats(self, item):
         item['stats']['failed_policies'] = 0
