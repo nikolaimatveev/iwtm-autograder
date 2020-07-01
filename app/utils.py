@@ -30,3 +30,13 @@ def simplify_json_array(json_array):
     for item in json_array:
         result.append(item['DISPLAY_NAME'])
     return result
+
+def get_int_representation_of_violation_level(violation_level):
+    if violation_level == 'High':
+        return 3
+    elif violation_level == 'Medium':
+        return 2
+    elif violation_level == 'Low':
+        return 1
+    else:
+        return 0

@@ -209,3 +209,17 @@ class IWTMService:
                         for tag in action['DATA']['VALUE']:
                             tags.add(tag['NAME'])
         return tags
+
+    def get_highest_violation_level_from_policy_transfer_rules(self, policy):
+        violation_level = 'No'
+        violation_level_int = 0
+        for rule in policy['rules']:
+            if rule['TYPE'] == 'transfer':
+                for action in rule['actions']:
+                    if action['TYPE'] == 'VIOLATION':
+                        level = action['DATA']['VALUE'].capitalize()
+                        level_int = utils.get_int_representation_of_violation_level(level)
+                        if level_int > violation_level_int:
+                            violation_level_int = level_int
+                            violation_level = level
+        return violation_level

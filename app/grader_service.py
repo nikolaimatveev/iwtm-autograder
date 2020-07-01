@@ -1,5 +1,6 @@
 from .grader_repository import GraderRepository
 from .iwtm_service import IWTMService
+from . import utils
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Border, Side, Alignment
 from openpyxl.utils import get_column_letter
@@ -137,8 +138,10 @@ class GraderService:
         protected_object = item['protected_object']
         iwtm_policy = self.iwtm_service.find_policy_by_name(iwtm_policies, policy)
         tags = []
+        iwtm_violation_level = 'No'
         if iwtm_policy:
             tags = self.iwtm_service.get_tags_from_policy_transfer_rules(iwtm_policy)
+            iwtm_violation_level = self.iwtm_service.get_highest_violation_level_from_policy_transfer_rules(iwtm_policy)
         for any_item in grouped_events:
             for policy_event in any_item['events']:
                 iwtm_event = policy_event['iwtm_event']
@@ -151,6 +154,12 @@ class GraderService:
                             tag not in policy_event['tags']):
                             item['stats']['false_tags'] += 1
                             any_item['stats']['false_tags'] -= 1
+                    if (iwtm_violation_level == iwtm_event['violation_level'] and
+                        iwtm_event['violation_level'] != policy_event['violation_level']):
+                        item['stats']['wrong_violation_level'] += 1
+                        if any_item['stats']['wrong_violation_level'] > 0:
+                            any_item['stats']['wrong_violation_level'] -= 1
+                    
                     
                 if (protected_object in iwtm_event['protected_objects'] and
                         protected_object not in policy_event['protected_objects']):
