@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-grader_service = GraderService(True)
+grader_service = GraderService()
 
 @api_view(['POST'])
 def load_events(request):
@@ -124,7 +124,7 @@ def get_participant_result(request, number):
 
 @api_view(['GET'])
 def check_testing(request):
-    iwtm_service = IWTMService(True)
+    iwtm_service = IWTMService()
     filename = 'app/static/template_events.xlsx'
     username = 'officer'
     password = 'xxXX1234'

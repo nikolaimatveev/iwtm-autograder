@@ -4,8 +4,6 @@ from . import utils
 from urllib.parse import unquote
 
 class IWTMService:
-    def __init__(self, debug_mode):
-        self.debug_mode = debug_mode
     
     def get_parsed_events(self, ip, auth_cookies, date_and_time, unique_senders, unique_recipients):
         token = self.get_token(ip, auth_cookies)

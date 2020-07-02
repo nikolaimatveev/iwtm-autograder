@@ -6,9 +6,9 @@ from openpyxl.styles import Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 
 class GraderService:
-    def __init__(self, debug_mode):
+    def __init__(self):
         self.grader_repository = GraderRepository()
-        self.iwtm_service = IWTMService(debug_mode)
+        self.iwtm_service = IWTMService()
     
     def save_template_file(self, path, file):
         with open(path, 'wb+') as destination:
