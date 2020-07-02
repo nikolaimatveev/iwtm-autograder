@@ -25,11 +25,11 @@ class GraderRepository:
             result = self.participants[number]
         return result
 
-    def save_auth_cookie(self, participant_number, auth_cookie):
-        self.auth_cookies[participant_number] = auth_cookie
+    def save_auth_cookie(self, iwtm_ip, auth_cookie):
+        self.auth_cookies[iwtm_ip] = auth_cookie
     
-    def get_auth_cookie(self, participant_number):
+    def get_auth_cookie(self, iwtm_ip):
         result = {}
-        if participant_number in self.auth_cookies:
-            result = self.auth_cookies[participant_number]
+        if iwtm_ip in self.auth_cookies:
+            result = self.auth_cookies[iwtm_ip]
         return result

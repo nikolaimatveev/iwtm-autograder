@@ -33,16 +33,15 @@ class GraderService:
     def find_participant_by_number(self, number):
         return self.grader_repository.find_participant_by_number(number)
 
-    def save_auth_cookie(self, participant_number, auth_cookie):
-        return self.grader_repository.save_auth_cookie(participant_number, auth_cookie)
+    def save_auth_cookie(self, iwtm_ip, auth_cookie):
+        return self.grader_repository.save_auth_cookie(iwtm_ip, auth_cookie)
 
-    def get_auth_cookie(self, participant_number):
-        return self.grader_repository.get_auth_cookie(participant_number)
+    def get_auth_cookie(self, iwtm_ip):
+        return self.grader_repository.get_auth_cookie(iwtm_ip)
 
-    def load_events(self, iwtm_ip, username, password, date_and_time, template_file_path):
+    def load_events(self, iwtm_ip, auth_cookies, date_and_time, template_file_path):
         template_events = self.load_template_events(template_file_path)
         
-        auth_cookies = self.iwtm_service.login(iwtm_ip, username, password)
         unique_senders = self.get_unique_senders(template_events)
         unique_recipients = self.get_unique_recipients(template_events)
         iwtm_events = self.iwtm_service.get_parsed_events(iwtm_ip, auth_cookies, date_and_time, unique_senders, unique_recipients)

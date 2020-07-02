@@ -32,11 +32,14 @@ def load_events(request):
     
     grader_service.save_template_file(template_file_path, template_file)
     try:
+        auth_cookie = grader_service.get_auth_cookie(iwtm_ip)
+        if not grader_service.iwtm_service.isAuthCookiesValid(iwtm_ip, auth_cookie):
+            auth_cookie = grader_service.iwtm_service.login(iwtm_ip, iwtm_login, iwtm_password)
+            grader_service.save_auth_cookie(iwtm_ip, auth_cookie)
         mapped_events = grader_service.load_events(iwtm_ip,
-                                    iwtm_login,
-                                    iwtm_password,
-                                    date_and_time, 
-                                    template_file_path)
+                                                   auth_cookie,
+                                                   date_and_time, 
+                                                   template_file_path)
     except requests.exceptions.ConnectionError as e:
         return Response({'error': 'No connection to IWTM'}, status=status.HTTP_400_BAD_REQUEST)
     except requests.exceptions.HTTPError as e:
@@ -77,10 +80,10 @@ def check_events(request):
         iwtm_ip = participant['ip']
         iwtm_username = participant['iwtm_username']
         iwtm_password = participant['iwtm_password']
-        auth_cookie = grader_service.get_auth_cookie(participant_number)
+        auth_cookie = grader_service.get_auth_cookie(iwtm_ip)
         if not grader_service.iwtm_service.isAuthCookiesValid(iwtm_ip, auth_cookie):
             auth_cookie = grader_service.iwtm_service.login(iwtm_ip, iwtm_username, iwtm_password)
-            grader_service.save_auth_cookie(participant_number, auth_cookie)
+            grader_service.save_auth_cookie(iwtm_ip, auth_cookie)
         iwtm_policies = grader_service.iwtm_service.get_policies(iwtm_ip, auth_cookie)
         result = grader_service.check_events_normal_mode(events, iwtm_policies)
     else:
