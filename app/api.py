@@ -23,8 +23,10 @@ def load_events(request):
             not iwtm_ip or not iwtm_login or not iwtm_password or
             not date_and_time or not template_file):
         return Response({'error': 'All fields is required'}, status=status.HTTP_400_BAD_REQUEST)
-    #if event_service.get_participant_by_ip(iwtm_ip):
-    #    return Response({'error': 'Competitor already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if grader_service.find_participant_by_number(competitor_number):
+        return Response({'error': 'Competitor already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    
     template_file_path = 'app/static/upload/' + template_file.name
     print(iwtm_ip, iwtm_login, date_and_time, template_file)
     
