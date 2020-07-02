@@ -1,5 +1,7 @@
 # IWTM AutoGrader Backend
 
+You can find the template file in `app/static/template_events.xlsx`.
+
 ## Installation
 
 ```bash
