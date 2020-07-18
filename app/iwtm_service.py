@@ -7,6 +7,7 @@ class IWTMService:
     
     def get_parsed_events(self, ip, auth_cookies, date_and_time, unique_senders, unique_recipients):
         token = self.get_token(ip, auth_cookies)
+        self.check_ldap_status(ip, auth_cookies)
         events = self.load_events(ip, token, date_and_time)
         persons = self.get_persons(ip, token)
         groups = self.get_groups(ip, token)
@@ -51,11 +52,11 @@ class IWTMService:
         url = 'https://' + ip + '/api/plugin?merge_with[]=tokens'
         response = requests.get(url, cookies=auth_cookies, verify=False)
         data = response.json()
-        token = ''
         for plugin in data['data']:
+            #TODO Посмотреть как можно избавиться от сравнения с hard-coded именем 
             if plugin['DISPLAY_NAME'] == 'DataExport plugin':
-                token = plugin['tokens'][0]['USERNAME']
-        return token
+                return plugin['tokens'][0]['USERNAME']
+        raise RuntimeError('Plugin not found or named incorrect. Correct name: DataExport plugin')
     
     def load_events(self, ip, token, date_and_time):
         url = 'https://' + ip + '/xapi/event'
@@ -221,3 +222,14 @@ class IWTMService:
                             violation_level_int = level_int
                             violation_level = level
         return violation_level
+    
+    def check_ldap_status(self, ip, auth_cookies):
+        url = 'https://' + ip + '/api/adlibitum/server'
+        response = requests.get(url, cookies=auth_cookies, verify=False)
+        data = response.json()
+        if data['state'] == 'data' and len(data['data']) == 1:
+            sync_status = data['data'][0]['sync_description']
+            if sync_status != 'success':
+                raise RuntimeError('LDAP server not sync')
+        else:
+            raise RuntimeError('LDAP server not found')

@@ -1,6 +1,6 @@
 # IWTM AutoGrader Backend
 
-You can find the template file in `app/static/template_events.xlsx`.
+You can find the template file in `iwtm_autograder/static/template_events.xlsx`.
 
 ## Installation
 

@@ -2,6 +2,7 @@ import requests
 from app.grader_service import GraderService
 from app.iwtm_service import IWTMService
 from django.http import HttpResponse, FileResponse
+from django.conf import settings
 from wsgiref.util import FileWrapper
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -11,7 +12,6 @@ grader_service = GraderService()
 
 @api_view(['POST'])
 def load_events(request):
-    #TODO: validate input params
     competitor_number = request.POST.get('competitor_number')
     competitor_last_name = request.POST.get('competitor_last_name')
     iwtm_ip = request.POST.get('iwtm_ip')
@@ -27,7 +27,7 @@ def load_events(request):
     if grader_service.find_participant_by_number(competitor_number):
         return Response({'error': 'Competitor already exists'}, status=status.HTTP_400_BAD_REQUEST)
     
-    template_file_path = 'app/static/upload/' + template_file.name
+    template_file_path = settings.MEDIA_ROOT + template_file.name
     print(iwtm_ip, iwtm_login, date_and_time, template_file)
     
     grader_service.save_template_file(template_file_path, template_file)
@@ -112,11 +112,10 @@ def download_participant_result(request, number):
     result = grader_service.find_participant_result_by_number(number)
     participant = grader_service.find_participant_by_number(number)
     ip = participant['ip']
-    path = 'app/static/'
     locale = request.GET.get('locale')
     filename = 'result-' + ip.replace('.', '-') + '.xlsx'
-    grader_service.export_participant_result(result, participant, path + filename, locale)
-    result_file = open(path + filename, 'rb')
+    grader_service.export_participant_result(result, participant, settings.MEDIA_ROOT + filename, locale)
+    result_file = open(settings.MEDIA_ROOT + filename, 'rb')
     response = HttpResponse(result_file, content_type='application/**')
     response['Content-Disposition'] = 'attachment; filename=' + filename
     result_file.close()
@@ -129,13 +128,4 @@ def get_participant_result(request, number):
 
 @api_view(['GET'])
 def check_testing(request):
-    iwtm_service = IWTMService()
-    filename = 'app/static/template_events.xlsx'
-    username = 'officer'
-    password = 'xxXX1234'
-    date_and_time = '2020-06-24-18-30'
-    iwtm_ip = '10.228.6.236:17443'
-    auth_cookies = iwtm_service.login(iwtm_ip, username, password)
-    token = iwtm_service.get_token(iwtm_ip, auth_cookies)
-    events = iwtm_service.load_events(iwtm_ip, token, date_and_time)
-    return Response(events)
+    return Response({'message': 'OK'})
