@@ -8,3 +8,4 @@ local_settings.py
 .env
 db.sqlite3
 iwtm_autograder/media/*
+!iwtm_autograder/media/.gitkeep
