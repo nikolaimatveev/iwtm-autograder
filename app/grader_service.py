@@ -52,6 +52,9 @@ class GraderService:
         return mapped_events
     
     def load_template_events(self, filename):
+        '''
+        Загрузка шаблона из файла формата xlsx
+        '''
         template_events = []
         wb = load_workbook(filename)
         sheet = wb.active
@@ -110,6 +113,9 @@ class GraderService:
         return result
 
     def map_events(self, template_events, iwtm_events):
+        '''
+        Сопоставление шаблонных событий с событиями tm
+        '''
         mapped_events = []
         for item in template_events:
             mapped_item = item
@@ -119,18 +125,35 @@ class GraderService:
         return mapped_events
 
     def find_event_by_id(self, events, filename, sender, recipient):
-        found_event = {}
+        '''
+        Поиск tm события по уникальному ключу - файл, отправитель, получатель
+        '''
         for event in events:
             if event['filename'] == filename and event['sender'] == sender and event['recipient'] == recipient:
-                found_event = event
-                return found_event
-        return found_event
+                return event
+        raise RuntimeError(f'IWTM event not found with key {filename} {sender} {recipient}')
 
     def check_events_normal_mode(self, grouped_events, iwtm_policies):
+        '''
+        Умеренная проверка - ложный объект в событии переходит в задание,
+        соответствующее ему или не учитывается вовсе в случае отсутствия
+        такого объекта в шаблоне
+        '''
         self.check_events_max_mode(grouped_events)
+        for item in grouped_events:
+            self.reset_false_elements_in_item_stats(item)
         for item in grouped_events:
             self.find_false_triggering_and_update_stats(item, grouped_events, iwtm_policies)
         return grouped_events
+
+    def reset_false_elements_in_item_stats(self, item):
+        for event in item['events']:
+            event['stats']['false_policies'] = 0
+            event['stats']['false_objects'] = 0
+            event['stats']['false_tags'] = 0
+        item['stats']['false_policies'] = 0
+        item['stats']['false_objects'] = 0
+        item['stats']['false_tags'] = 0
 
     def find_false_triggering_and_update_stats(self, item, grouped_events, iwtm_policies):
         policy = item['policy']
@@ -146,26 +169,35 @@ class GraderService:
                 iwtm_event = policy_event['iwtm_event']
                 if (policy in iwtm_event['policies'] and
                         policy not in policy_event['policies']):
+                    policy_event['stats']['false_policies'] += 1
                     item['stats']['false_policies'] += 1
-                    any_item['stats']['false_policies'] -= 1
+                    # any_item['stats']['false_policies'] -= 1
                     for tag in tags:
                         if (tag in iwtm_event['tags'] and
                             tag not in policy_event['tags']):
+                            policy_event['stats']['false_tags'] += 1
                             item['stats']['false_tags'] += 1
-                            any_item['stats']['false_tags'] -= 1
+                            # any_item['stats']['false_tags'] -= 1
                     if (iwtm_violation_level == iwtm_event['violation_level'] and
                         iwtm_event['violation_level'] != policy_event['violation_level']):
+                        policy_event['stats']['wrong_violation_level'] += 1
                         item['stats']['wrong_violation_level'] += 1
+                        if policy_event['stats']['wrong_violation_level'] > 0:
+                            policy_event['stats']['wrong_violation_level'] -= 1
                         if any_item['stats']['wrong_violation_level'] > 0:
                             any_item['stats']['wrong_violation_level'] -= 1
                     
                     
                 if (protected_object in iwtm_event['protected_objects'] and
                         protected_object not in policy_event['protected_objects']):
+                    policy_event['stats']['false_objects'] += 1
                     item['stats']['false_objects'] += 1
-                    any_item['stats']['false_objects'] -= 1
+                    # any_item['stats']['false_objects'] -= 1
 
     def check_events_max_mode(self, grouped_events):
+        '''
+        Максимальная проверка - события сравниваются поэлементно
+        '''
         for item in grouped_events:
             self.init_task_stats(item)
             self.check_events_one_to_one(item)
@@ -174,7 +206,8 @@ class GraderService:
     def check_events_one_to_one(self, item):
         for task_event in item['events']:
             self.find_and_set_event_difference(task_event['iwtm_event'], task_event)
-            self.update_task_stats(item, task_event['iwtm_event'], task_event)
+            self.set_event_stats(task_event['iwtm_event'], task_event)
+            self.update_task_stats(item, task_event)
 
     def find_tags_in_task_events(self, item):
         tags = set()
@@ -232,17 +265,60 @@ class GraderService:
         iwtm_event['diff']['verdict'] = wrong_verdict_diff
         iwtm_event['diff']['violation_level'] = wrong_violation_level_diff
     
-    def update_task_stats(self, item, iwtm_event, template_event):
-        item['stats']['failed_policies'] += len(template_event['diff']['policies'])
-        item['stats']['false_policies'] += len(iwtm_event['diff']['policies'])
-        item['stats']['failed_objects'] += len(template_event['diff']['protected_objects'])
-        item['stats']['false_objects'] += len(iwtm_event['diff']['protected_objects'])
-        item['stats']['wrong_tags'] += len(template_event['diff']['tags'])
-        item['stats']['false_tags'] += len(iwtm_event['diff']['tags'])
+    def set_event_stats(self, iwtm_event, template_event):
+        template_event['stats'] = {}
+        template_event['stats']['failed_policies'] = len(template_event['diff']['policies'])
+        template_event['stats']['false_policies'] = len(iwtm_event['diff']['policies'])
+        template_event['stats']['failed_objects'] = len(template_event['diff']['protected_objects'])
+        template_event['stats']['false_objects'] = len(iwtm_event['diff']['protected_objects'])
+        template_event['stats']['wrong_tags'] = len(template_event['diff']['tags'])
+        template_event['stats']['false_tags'] = len(iwtm_event['diff']['tags'])
         if iwtm_event['diff']['verdict']:
-            item['stats']['wrong_verdict'] += 1
+            template_event['stats']['wrong_verdict'] = 1
         if iwtm_event['diff']['violation_level']:
-            item['stats']['wrong_violation_level'] += 1
+            template_event['stats']['wrong_violation_level'] = 1
+
+    def update_task_stats(self, item, template_event):
+        item['stats']['failed_policies'] += template_event['stats']['failed_policies']
+        item['stats']['false_policies'] += template_event['stats']['false_policies']
+        item['stats']['failed_objects'] += template_event['stats']['failed_objects']
+        item['stats']['false_objects'] += template_event['stats']['false_objects']
+        item['stats']['wrong_tags'] += template_event['stats']['wrong_tags']
+        item['stats']['false_tags'] += template_event['stats']['false_tags']
+        item['stats']['wrong_verdict'] += template_event['stats']['wrong_verdict']
+        item['stats']['wrong_violation_level'] += template_event['stats']['wrong_violation_level']
+
+    def get_participant_score(self, result):
+        '''
+        result -- dict with events + diff + stats
+        '''
+        event_max_score = 1.5
+        
+        wrong_verdict_penalty = 1
+        wrong_violation_level_penalty = 0.5
+        false_policy_penalty = 0.5
+        failed_policy_penalty = 0.5
+        false_protected_object_penalty = 0.5
+        failed_protected_object_penalty = 0.5
+        wrong_tag_penalty = 0.2
+        false_tag_penalty = 0.2
+
+        result_score = 0
+        for item in result:
+            for event in item['events']:
+                event_score = event_max_score
+                event_score -= wrong_verdict_penalty * event['stats']['wrong_verdict']
+                event_score -= wrong_violation_level_penalty * event['stats']['wrong_violation_level']
+                event_score -= false_policy_penalty * event['stats']['false_policies']
+                event_score -= failed_policy_penalty * event['stats']['failed_policies']
+                event_score -= false_protected_object_penalty * event['stats']['false_objects']
+                event_score -= failed_protected_object_penalty * event['stats']['failed_objects']
+                event_score -= wrong_tag_penalty * event['stats']['wrong_tags']
+                event_score -= false_tag_penalty * event['stats']['false_tags']
+                if event_score < 0:
+                    event_score = 0
+                result_score += event_score
+        return result_score
 
     def export_participant_result(self, result, participant, filename, locale):
         start_x = 1
@@ -264,6 +340,9 @@ class GraderService:
         sheet.cell(x_idx, y_idx).value = 'Метод оценки' if locale == 'ru' else 'Check mode'
         y_idx += 1
         sheet.cell(x_idx, y_idx).value = self.get_check_mode_display_name(participant['check_mode'], locale)
+        y_idx += 1
+        participant_score = self.get_participant_score(result)
+        sheet.cell(x_idx, y_idx).value = 'Score: ' + str(participant_score)
         y_idx = start_y
         x_idx += 1
         

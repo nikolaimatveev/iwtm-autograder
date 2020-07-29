@@ -3,9 +3,15 @@ import json
 from . import utils
 from urllib.parse import unquote
 
+'''
+Класс для выгрузки и обработки данных из IWTM    
+'''
 class IWTMService:
     
     def get_parsed_events(self, ip, auth_cookies, date_and_time, unique_senders, unique_recipients):
+        '''
+        Загрузка и обработка событий за указанный период date_and_time
+        '''
         token = self.get_token(ip, auth_cookies)
         self.check_ldap_status(ip, auth_cookies)
         events = self.load_events(ip, token, date_and_time)
@@ -15,6 +21,9 @@ class IWTMService:
         return events
 
     def isAuthCookiesValid(self, ip, auth_cookies):
+        '''
+        Проверка, что сессия еще не истекла и куки авторизации валидны
+        '''
         url = 'https://' + ip + '/api/user/check'
         response = requests.get(url, cookies=auth_cookies, verify=False)
         data = response.json()
@@ -24,6 +33,9 @@ class IWTMService:
             return False
     
     def login(self, ip, username, password):
+        '''
+        Вход в TM, возвращает куки авторизации
+        '''
         api_root = 'https://' + ip + '/api/'
         resp = requests.get(api_root + 'user/check', verify=False)
         csrf_token = unquote(resp.cookies['YII_CSRF_TOKEN'])

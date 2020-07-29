@@ -128,4 +128,9 @@ def get_participant_result(request, number):
 
 @api_view(['GET'])
 def check_testing(request):
-    return Response({'message': 'OK'})
+    iwtm_service = IWTMService()
+    ip = '172.18.209.132'
+    token = 't8kod9f4i68sc2zy9ydl'
+    date_and_time = '2020-07-16-20-00'
+    events = iwtm_service.load_events(ip, token, date_and_time)
+    return Response(events)
