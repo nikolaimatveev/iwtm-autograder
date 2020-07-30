@@ -294,7 +294,7 @@ class GraderService:
         '''
         result -- dict with events + diff + stats
         '''
-        event_max_score = 1.5
+        task_max_score = 1.5
         
         wrong_verdict_penalty = 1
         wrong_violation_level_penalty = 0.5
@@ -305,22 +305,32 @@ class GraderService:
         wrong_tag_penalty = 0.2
         false_tag_penalty = 0.2
 
-        result_score = 0
+        result_policy_score = 0
+        result_protected_object_score = 0
         for item in result:
-            for event in item['events']:
-                event_score = event_max_score
-                event_score -= wrong_verdict_penalty * event['stats']['wrong_verdict']
-                event_score -= wrong_violation_level_penalty * event['stats']['wrong_violation_level']
-                event_score -= false_policy_penalty * event['stats']['false_policies']
-                event_score -= failed_policy_penalty * event['stats']['failed_policies']
-                event_score -= false_protected_object_penalty * event['stats']['false_objects']
-                event_score -= failed_protected_object_penalty * event['stats']['failed_objects']
-                event_score -= wrong_tag_penalty * event['stats']['wrong_tags']
-                event_score -= false_tag_penalty * event['stats']['false_tags']
-                if event_score < 0:
-                    event_score = 0
-                result_score += event_score
-        return result_score
+            task_policy_score = task_max_score
+            task_policy_score -= wrong_verdict_penalty * item['stats']['wrong_verdict']
+            task_policy_score -= wrong_violation_level_penalty * item['stats']['wrong_violation_level']
+            task_policy_score -= false_policy_penalty * item['stats']['false_policies']
+            task_policy_score -= failed_policy_penalty * item['stats']['failed_policies']
+            task_policy_score -= false_protected_object_penalty * item['stats']['false_objects']
+            task_policy_score -= failed_protected_object_penalty * item['stats']['failed_objects']
+            task_policy_score -= wrong_tag_penalty * item['stats']['wrong_tags']
+            task_policy_score -= false_tag_penalty * item['stats']['false_tags']
+            
+            task_protected_object_score = task_max_score
+            task_protected_object_score -= false_protected_object_penalty * item['stats']['false_objects']
+            task_protected_object_score -= failed_protected_object_penalty * item['stats']['failed_objects']
+            
+            if task_policy_score < 0:
+                task_policy_score = 0
+            if task_protected_object_score < 0:
+                task_protected_object_score = 0
+            print("[debug] policy score", task_policy_score)
+            print("[debug] object score", task_protected_object_score)
+            result_policy_score += task_policy_score
+            result_protected_object_score += task_protected_object_score
+        return result_policy_score, result_protected_object_score
 
     def export_participant_result(self, result, participant, filename, locale):
         start_x = 1
@@ -343,8 +353,8 @@ class GraderService:
         check_info_str += self.get_check_mode_display_name(participant['check_mode'], locale)
         sheet.cell(x_idx, y_idx).value = check_info_str
         y_idx += 1
-        participant_score = self.get_participant_score(result)
-        sheet.cell(x_idx, y_idx).value = 'Score: ' + str(participant_score)
+        participant_policies_score, participant_protected_objects_score = self.get_participant_score(result)
+        sheet.cell(x_idx, y_idx).value = 'Score (policies): ' + str(participant_policies_score)
         y_idx = start_y
         x_idx += 1
         
@@ -401,7 +411,9 @@ class GraderService:
         
         protected_object_column_headers = self.get_protected_object_column_headers(locale)
         y_idx = start_y
-        x_idx += 3
+        x_idx += 2
+        sheet.cell(x_idx, y_idx).value = 'Score (objects): ' + str(participant_protected_objects_score)
+        x_idx += 1
         for header in protected_object_column_headers:
             sheet.cell(x_idx, y_idx).value = header
             sheet.cell(x_idx, y_idx).border = thin_border
