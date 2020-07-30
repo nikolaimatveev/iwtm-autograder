@@ -339,9 +339,9 @@ class GraderService:
         participant_info_str += participant['ip']
         sheet.cell(x_idx, y_idx).value = participant_info_str
         y_idx += 1
-        sheet.cell(x_idx, y_idx).value = 'Метод оценки' if locale == 'ru' else 'Check mode'
-        y_idx += 1
-        sheet.cell(x_idx, y_idx).value = self.get_check_mode_display_name(participant['check_mode'], locale)
+        check_info_str = 'Метод оценки: ' if locale == 'ru' else 'Check mode: '
+        check_info_str += self.get_check_mode_display_name(participant['check_mode'], locale)
+        sheet.cell(x_idx, y_idx).value = check_info_str
         y_idx += 1
         participant_score = self.get_participant_score(result)
         sheet.cell(x_idx, y_idx).value = 'Score: ' + str(participant_score)
