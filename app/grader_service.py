@@ -273,8 +273,10 @@ class GraderService:
         template_event['stats']['false_objects'] = len(iwtm_event['diff']['protected_objects'])
         template_event['stats']['wrong_tags'] = len(template_event['diff']['tags'])
         template_event['stats']['false_tags'] = len(iwtm_event['diff']['tags'])
+        template_event['stats']['wrong_verdict'] = 0
         if iwtm_event['diff']['verdict']:
             template_event['stats']['wrong_verdict'] = 1
+        template_event['stats']['wrong_violation_level'] = 0
         if iwtm_event['diff']['violation_level']:
             template_event['stats']['wrong_violation_level'] = 1
 
