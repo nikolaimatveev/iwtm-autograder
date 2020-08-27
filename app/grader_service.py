@@ -5,25 +5,38 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 
+
 class GraderService:
     def __init__(self):
         self.grader_repository = GraderRepository()
         self.iwtm_service = IWTMService()
-    
+
+        self.task_max_policy_score = 1.5
+        self.task_max_object_score = 1.5
+
+        self.wrong_verdict_penalty = 1
+        self.wrong_violation_level_penalty = 0.5
+        self.false_policy_penalty = 0.5
+        self.failed_policy_penalty = 0.5
+        self.false_protected_object_penalty = 0.5
+        self.failed_protected_object_penalty = 0.5
+        self.wrong_tag_penalty = 0.2
+        self.false_tag_penalty = 0.2
+
     def save_template_file(self, path, file):
         with open(path, 'wb+') as destination:
             for chunk in file.chunks():
                 destination.write(chunk)
-    
+
     def save_participant_result(self, participant_number, result):
         self.grader_repository.save_participant_result(participant_number, result)
-    
+
     def find_participant_result_by_number(self, number):
         participant_result = self.grader_repository.find_participant_result_by_number(number)
         if not participant_result:
             raise RuntimeError('Participant result not found')
         return participant_result
-    
+
     def save_participant(self, participant):
         self.grader_repository.save_participant(participant)
 
@@ -41,23 +54,24 @@ class GraderService:
 
     def load_events(self, iwtm_ip, auth_cookies, date_and_time, template_file_path):
         template_events = self.load_template_events(template_file_path)
-        
+
         unique_senders = self.get_unique_senders(template_events)
         unique_recipients = self.get_unique_recipients(template_events)
-        iwtm_events = self.iwtm_service.get_parsed_events(iwtm_ip, auth_cookies, date_and_time, unique_senders, unique_recipients)
-        
+        iwtm_events = self.iwtm_service.get_parsed_events(iwtm_ip, auth_cookies, date_and_time, unique_senders,
+                                                          unique_recipients)
+
         mapped_events = self.map_events(template_events, iwtm_events)
         protected_objects = self.iwtm_service.get_protected_objects(iwtm_ip, auth_cookies)
         self.iwtm_service.set_object_technologies(mapped_events, protected_objects)
         return mapped_events
-    
+
     def load_template_events(self, filename):
         '''
         Загрузка шаблона из файла формата xlsx
         '''
         template_events = []
         wb = load_workbook(filename)
-        sheet = wb.active
+        sheet = wb['template']
         row = 3
         while (sheet['D' + str(row)].value != None):
             task_item = {}
@@ -97,11 +111,23 @@ class GraderService:
             task_item['events'] = events
             task_item['stats'] = {}
             template_events.append(task_item)
+        sheet = wb['value']
+        self.task_max_policy_score = float(sheet['C' + str(3)].value)
+        self.task_max_object_score = float(sheet['C' + str(10)].value)
+
+        self.wrong_verdict_penalty = float(sheet['C' + str(4)].value)
+        self.wrong_violation_level_penalty = float(sheet['C' + str(5)].value)
+        self.false_policy_penalty = float(sheet['C' + str(6)].value)
+        self.failed_policy_penalty = float(sheet['C' + str(7)].value)
+        self.false_protected_object_penalty = float(sheet['C' + str(11)].value)
+        self.failed_protected_object_penalty = float(sheet['C' + str(12)].value)
+        self.wrong_tag_penalty = float(sheet['C' + str(8)].value)
+        self.false_tag_penalty = float(sheet['C' + str(9)].value)
         return template_events
-    
+
     def get_unique_senders(self, events):
         return self.get_unique_values(events, 'sender')
-    
+
     def get_unique_recipients(self, events):
         return self.get_unique_values(events, 'recipient')
 
@@ -120,7 +146,8 @@ class GraderService:
         for item in template_events:
             mapped_item = item
             for event in mapped_item['events']:
-                event['iwtm_event'] = self.find_event_by_id(iwtm_events, event['filename'], event['sender'], event['recipient'])
+                event['iwtm_event'] = self.find_event_by_id(iwtm_events, event['filename'], event['sender'],
+                                                            event['recipient'])
             mapped_events.append(mapped_item)
         return mapped_events
 
@@ -181,20 +208,19 @@ class GraderService:
                     # any_item['stats']['false_policies'] -= 1
                     for tag in tags:
                         if (tag in iwtm_event['tags'] and
-                            tag not in policy_event['tags']):
+                                tag not in policy_event['tags']):
                             policy_event['stats']['false_tags'] += 1
                             item['stats']['false_tags'] += 1
                             # any_item['stats']['false_tags'] -= 1
                     if (iwtm_violation_level == iwtm_event['violation_level'] and
-                        iwtm_event['violation_level'] != policy_event['violation_level']):
+                            iwtm_event['violation_level'] != policy_event['violation_level']):
                         policy_event['stats']['wrong_violation_level'] += 1
                         item['stats']['wrong_violation_level'] += 1
                         if policy_event['stats']['wrong_violation_level'] > 0:
                             policy_event['stats']['wrong_violation_level'] -= 1
                         if any_item['stats']['wrong_violation_level'] > 0:
                             any_item['stats']['wrong_violation_level'] -= 1
-                    
-                    
+
                 if (protected_object in iwtm_event['protected_objects'] and
                         protected_object not in policy_event['protected_objects']):
                     policy_event['stats']['false_objects'] += 1
@@ -244,23 +270,23 @@ class GraderService:
         failed_policies_diff = self.get_array_difference(template_event['policies'],
                                                          iwtm_event['policies'])
         false_policies_diff = self.get_array_difference(iwtm_event['policies'],
-                                                            template_event['policies'])
+                                                        template_event['policies'])
         failed_objects_diff = self.get_array_difference(template_event['protected_objects'],
-                                                              iwtm_event['protected_objects'])
+                                                        iwtm_event['protected_objects'])
         false_objects_diff = self.get_array_difference(iwtm_event['protected_objects'],
-                                                             template_event['protected_objects'])
+                                                       template_event['protected_objects'])
         failed_tags_diff = self.get_array_difference(template_event['tags'],
-                                                  iwtm_event['tags'])
+                                                     iwtm_event['tags'])
         false_tags_diff = self.get_array_difference(iwtm_event['tags'],
-                                                        template_event['tags'])
+                                                    template_event['tags'])
         wrong_verdict_diff = ''
         if iwtm_event['verdict'] != template_event['verdict']:
             wrong_verdict_diff = iwtm_event['verdict']
-            
+
         wrong_violation_level_diff = ''
         if iwtm_event['violation_level'] != template_event['violation_level']:
             wrong_violation_level_diff = iwtm_event['violation_level']
-            
+
         iwtm_event['diff'] = {}
         template_event['diff'] = {}
         iwtm_event['diff']['policies'] = false_policies_diff
@@ -271,7 +297,7 @@ class GraderService:
         template_event['diff']['tags'] = failed_tags_diff
         iwtm_event['diff']['verdict'] = wrong_verdict_diff
         iwtm_event['diff']['violation_level'] = wrong_violation_level_diff
-    
+
     def set_event_stats(self, iwtm_event, template_event):
         template_event['stats'] = {}
         template_event['stats']['failed_policies'] = len(template_event['diff']['policies'])
@@ -301,21 +327,22 @@ class GraderService:
         '''
         result -- dict with events + diff + stats
         '''
-        task_max_score = 1.5
-        
-        wrong_verdict_penalty = 1
-        wrong_violation_level_penalty = 0.5
-        false_policy_penalty = 0.5
-        failed_policy_penalty = 0.5
-        false_protected_object_penalty = 0.5
-        failed_protected_object_penalty = 0.5
-        wrong_tag_penalty = 0.2
-        false_tag_penalty = 0.2
+        task_max_policy_score = self.task_max_policy_score
+        task_max_object_score = self.task_max_object_score
 
-        result_policy_score = 0
-        result_protected_object_score = 0
+        wrong_verdict_penalty = self.wrong_verdict_penalty
+        wrong_violation_level_penalty = self.wrong_violation_level_penalty
+        false_policy_penalty = self.false_policy_penalty
+        failed_policy_penalty = self.failed_policy_penalty
+        false_protected_object_penalty = self.false_protected_object_penalty
+        failed_protected_object_penalty = self.failed_protected_object_penalty
+        wrong_tag_penalty = self.wrong_tag_penalty
+        false_tag_penalty = self.false_tag_penalty
+
+        result_policy_score = []
+        result_protected_object_score = []
         for item in result:
-            task_policy_score = task_max_score
+            task_policy_score = task_max_policy_score
             task_policy_score -= wrong_verdict_penalty * item['stats']['wrong_verdict']
             task_policy_score -= wrong_violation_level_penalty * item['stats']['wrong_violation_level']
             task_policy_score -= false_policy_penalty * item['stats']['false_policies']
@@ -324,26 +351,26 @@ class GraderService:
             task_policy_score -= failed_protected_object_penalty * item['stats']['failed_objects']
             task_policy_score -= wrong_tag_penalty * item['stats']['wrong_tags']
             task_policy_score -= false_tag_penalty * item['stats']['false_tags']
-            
-            task_protected_object_score = task_max_score
+
+            task_protected_object_score = task_max_object_score
             task_protected_object_score -= false_protected_object_penalty * item['stats']['false_objects']
             task_protected_object_score -= failed_protected_object_penalty * item['stats']['failed_objects']
-            
+
             if task_policy_score < 0:
                 task_policy_score = 0
             if task_protected_object_score < 0:
                 task_protected_object_score = 0
-            print("[debug] policy score", task_policy_score)
-            print("[debug] object score", task_protected_object_score)
-            result_policy_score += task_policy_score
-            result_protected_object_score += task_protected_object_score
+            #print("[debug] policy score", task_policy_score)
+            #print("[debug] object score", task_protected_object_score)
+            result_policy_score.append(task_policy_score)
+            result_protected_object_score.append(task_protected_object_score)
         return result_policy_score, result_protected_object_score
 
     def export_participant_result(self, result, participant, filename, locale):
         start_x = 1
         start_y = 1
-        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), 
-                            top=Side(style='thin'), bottom=Side(style='thin'))
+        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'),
+                             top=Side(style='thin'), bottom=Side(style='thin'))
         cell_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
         book = Workbook()
         sheet = book.active
@@ -361,19 +388,18 @@ class GraderService:
         sheet.cell(x_idx, y_idx).value = check_info_str
         y_idx += 1
         participant_policies_score, participant_protected_objects_score = self.get_participant_score(result)
-        sheet.cell(x_idx, y_idx).value = 'Score (policies): ' + str(participant_policies_score)
+        sheet.cell(x_idx, y_idx).value = 'Score (policies): ' + str(sum(participant_policies_score))
         y_idx = start_y
         x_idx += 1
-        
+
         policy_column_headers = self.get_policy_column_headers(locale)
-        
         for header in policy_column_headers:
             sheet.cell(x_idx, y_idx).value = header
             sheet.cell(x_idx, y_idx).border = thin_border
             sheet.cell(x_idx, y_idx).alignment = cell_align
             sheet.column_dimensions[get_column_letter(y_idx)].width = 18
             y_idx += 1
-        
+        num = 0
         for item in result:
             x_idx += 1
             y_idx = start_y
@@ -415,11 +441,16 @@ class GraderService:
             y_idx += 1
             sheet.cell(x_idx, y_idx).value = total_errors
             sheet.cell(x_idx, y_idx).border = thin_border
-        
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = participant_policies_score[num]
+            sheet.cell(x_idx, y_idx).border = thin_border
+            num += 1
+
+
         protected_object_column_headers = self.get_protected_object_column_headers(locale)
         y_idx = start_y
         x_idx += 2
-        sheet.cell(x_idx, y_idx).value = 'Score (objects): ' + str(participant_protected_objects_score)
+        sheet.cell(x_idx, y_idx).value = 'Score (objects): ' + str(sum(participant_protected_objects_score))
         x_idx += 1
         for header in protected_object_column_headers:
             sheet.cell(x_idx, y_idx).value = header
@@ -429,7 +460,7 @@ class GraderService:
             y_idx += 1
 
         technologies = self.get_technologies_dict(locale)
-
+        num = 0
         for item in result:
             x_idx += 1
             y_idx = start_y
@@ -458,41 +489,45 @@ class GraderService:
                 technologies_str = ", ".join(display_names)
                 sheet.cell(x_idx, y_idx).value = technologies_str
             sheet.cell(x_idx, y_idx).border = thin_border
+            y_idx += 1
+            sheet.cell(x_idx, y_idx).value = participant_protected_objects_score[num]
+            sheet.cell(x_idx, y_idx).border = thin_border
+            num += 1
         book.save(filename)
 
     def get_policy_column_headers(self, locale):
         if locale == 'ru':
             column_headers = [
-                'Задание', 'Политика', 'Ложные политики', 'Несработавшие политики', 
-                'Ложные объекты', 'Несработавшие объекты', 
+                'Задание', 'Политика', 'Ложные политики', 'Несработавшие политики',
+                'Ложные объекты', 'Несработавшие объекты',
                 'Ложные теги', 'Неправильные теги', 'Неправильные вердикты',
-                'Неправильные уровни нарушения', 'Итого недочетов'
+                'Неправильные уровни нарушения', 'Итого недочетов','Оценка'
             ]
             return column_headers
         elif locale == 'en':
             column_headers = [
-                'Task', 'Policy', 'False policies', 'Failed policies', 
-                'False protected objects', 'Failed protected objects', 
+                'Task', 'Policy', 'False policies', 'Failed policies',
+                'False protected objects', 'Failed protected objects',
                 'False tags', 'Wrong tags', 'Wrong verdicts',
-                'Wrong violation levels', 'Total errors'
+                'Wrong violation levels', 'Total errors','Score'
             ]
             return column_headers
         else:
             raise RuntimeError('Unsupported locale')
-    
+
     def get_protected_object_column_headers(self, locale):
         if locale == 'ru':
             column_headers = [
-                'Задание', 'Объект защиты', 'Ложные объекты', 
+                'Задание', 'Объект защиты', 'Ложные объекты',
                 'Несработавшие объекты', 'Итого недочетов',
-                'Типы технологий'
+                'Типы технологий','Оценка'
             ]
             return column_headers
         elif locale == 'en':
             column_headers = [
-                'Task', 'Protected object', 'False protected objects', 
+                'Task', 'Protected object', 'False protected objects',
                 'Failed protected objects', 'Total errors',
-                'Technologies'
+                'Technologies','Score'
             ]
             return column_headers
         else:
